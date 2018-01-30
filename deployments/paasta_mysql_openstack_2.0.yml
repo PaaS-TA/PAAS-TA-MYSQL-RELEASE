@@ -1,0 +1,166 @@
+# paasta-mysql-vsphere 설정 파일 내용
+name: paasta-mysql-service1
+director_uuid: b63ac41b-8215-4926-bb43-5dcc982eff6a   #bosh status 에서 확인한 Director UUID을 입력(필수)
+
+releases:
+- name: paasta-mysql                                #서비스 릴리즈 이름(필수)
+  version: 2.0                                        #서비스 릴리즈 버전(필수):latest 시 업로드된 서비스 릴리즈 최신버전
+
+update:
+  canaries: 1
+  canary_watch_time: 30000-600000
+  max_in_flight: 1
+  update_watch_time: 30000-600000
+
+compilation:                            # 컴파일시 필요한 가상머신의 속성(필수)
+  cloud_properties:                     # 컴파일 VM을 만드는 데 필요한 IaaS의 특정 속성 (instance_type, availability_zone)
+    instance_type: monitoring           # 인스턴스 타입: Flavors 타입 (필수)
+  network: default                      # Networks block에서 선언한 network 이름(필수)
+  reuse_compilation_vms: true           # 컴파일지 VM 재사용 여부(옵션)
+  workers: 4                            # 컴파일 하는 가상머신의 최대수(필수)
+
+jobs:
+- instances: 1
+  name: mysql_z1
+  networks:
+  - name: default
+    static_ips: 10.244.3.90
+  persistent_disk: 8196
+  properties:
+    admin_password: admin
+    cluster_ips:
+    - 10.244.3.90
+    network_name: default
+    seeded_databases: null
+    syslog_aggregator: null
+    collation_server: utf8_unicode_ci
+    character_set_server: utf8
+  release: paasta-mysql
+  resource_pool: small
+  template: mysql
+
+- instances: 1
+  name: proxy
+  networks:
+  - name: default
+    static_ips: 10.244.3.93
+  properties:
+    cluster_ips:
+    - 10.244.3.90
+    external_host: 115.68.151.188.xip.io
+    nats:
+      machines:
+      - 10.244.3.11
+      password: admin
+      port: 4222
+      user: nats
+    network_name: default
+    proxy:
+      api_password: admin
+      api_username: api
+      api_force_https: false
+    syslog_aggregator: null
+  release: paasta-mysql
+  resource_pool: small
+  template: proxy
+
+- instances: 1
+  name: paasta-mysql-java-broker
+  networks:
+  - name: default
+    static_ips: 10.244.3.94
+  properties:
+    jdbc_ip: 10.244.3.93
+    jdbc_pwd: admin
+    jdbc_port: 3306
+    log_dir: paasta-mysql-java-broker
+    log_file: paasta-mysql-java-broker
+    log_level: INFO
+  release: paasta-mysql
+  resource_pool: small
+  template: op-mysql-java-broker
+
+- instances: 1
+  lifecycle: errand
+  name: broker-registrar
+  networks:
+  - name: default
+  properties:
+    broker:
+      host: 10.244.3.94
+      name: mysql-service-broker
+      password: cloudfoundry
+      username: admin
+      protocol: http
+      port: 8080
+    cf:
+      admin_password: admin
+      admin_username: admin
+      api_url: https://api.115.68.151.188.xip.io
+      skip_ssl_validation: true
+  release: paasta-mysql
+  resource_pool: small
+  template: broker-registrar
+
+- instances: 1
+  lifecycle: errand
+  name: broker-deregistrar
+  networks:
+  - name: default
+  properties:
+    broker:
+      name: mysql-service-broker
+    cf:
+      admin_password: admin
+      admin_username: admin
+      api_url: https://api.115.68.151.188.xip.io
+      skip_ssl_validation: true
+  release: paasta-mysql
+  resource_pool: small
+  template: broker-deregistrar
+
+meta:
+  apps_domain: 115.68.151.188.xip.io
+  environment: null
+  external_domain: 115.68.151.188.xip.io
+  nats:
+    machines:
+    - 10.244.3.11
+    password: admin
+    port: 4222
+    user: nats
+  syslog_aggregator: null
+
+
+
+networks:     # 네트워크 블록에 나열된 각 서브 블록이 참조 할 수있는 작업이 네트워크 구성을 지정, 네트워크 구성은 네트워크 담당자에게 문의 하여 작성 요망
+- name: default
+  subnets:
+  - cloud_properties:
+      net_id: b7c8c08f-2d3b-4a86-bd10-641cb6faa317
+      security_groups: [bosh]
+    dns:  # DNS 정보
+    - 10.244.3.4
+    - 8.8.8.8
+    gateway: 10.244.3.1
+    range: 10.244.3.0/24  # 사용할 네트워크 범위
+    reserved:   # 설치시 제외할 IP 설정
+    - 10.244.3.2 - 10.244.3.89
+    static:
+    - 10.244.3.90 - 10.244.3.170  #사용 가능한 IP 설정
+
+properties: {}
+
+resource_pools:               # 배포시 사용하는 resource pools를 명시하며 여러 개의 resource pools 을 사용할 경우 name 은 unique >해야함(필수)
+- cloud_properties:
+    instance_type: monitoring
+  env:
+    bosh: #password: dhvms09!
+      password: $6$mwZOg/kA$r64mds4/xoqhW2tR8ck7oxmhqGiCBsDS5SWW/j8vgahvpdHkKJrb25/Wc2..CT3ja02qLgh0JB60RTP2ndjAh0
+    #bosh:
+    #  password: $6$4gDD3aV0rdqlrKC$2axHCxGKIObs6tAmMTqYCspcdvQXh3JJcvWOY2WGb4SrdXtnCyNaWlrf3WEqvYR2MYizEGp3kMmbpwBC6jsHt0
+  name: small # 고유한 resource pool 이름
+  network: default
+  stemcell:
+    name:  bosh-openstack-kvm-ubuntu-trusty-go_agent  # stemcell 이름(필수)
+    version: 3309 # stemcell 버전(필수)

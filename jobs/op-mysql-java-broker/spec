@@ -1,0 +1,30 @@
+---
+name: op-mysql-java-broker
+templates:
+  bin/op-mysql-java-broker_ctl.erb: bin/op-mysql-java-broker_ctl
+  config/datasource.properties.erb: config/datasource.properties
+  config/logback.xml.erb: config/logback.xml
+  bin/monit_debugger: bin/monit_debugger
+  data/properties.sh.erb: data/properties.sh
+  helpers/ctl_setup.sh: helpers/ctl_setup.sh
+  helpers/ctl_utils.sh: helpers/ctl_utils.sh
+
+packages:
+- openjdk-1.8.0_45
+- op-mysql-java-broker
+
+properties:
+  jdbc_ip:
+    description: 'MySQL server ip'
+  jdbc_pwd:
+    description: 'MySQL server pwd'
+  jdbc_port:
+    description: 'MySQL server port'
+    default: 3306
+  log_dir:
+    description: 'log directory'
+  log_file:
+    description: 'log file'
+  log_level:
+    description: 'log level'
+    default: 'DEBUG'

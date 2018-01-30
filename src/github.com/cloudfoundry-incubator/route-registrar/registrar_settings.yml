@@ -1,0 +1,11 @@
+---
+message_bus_servers:
+  - host: 10.244.0.6:4222
+    user: nats
+    password: nats
+external_host: riakcs.vcap.me
+external_ip: 127.0.0.1
+port: 8080
+health_checker:
+  name: riak-cs-cluster
+  interval_in_seconds: 10

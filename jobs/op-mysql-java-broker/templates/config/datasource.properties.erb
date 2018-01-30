@@ -1,0 +1,7 @@
+# mysql Database Settings
+jdbc.driver = org.mariadb.jdbc.Driver
+jdbc.username = root
+jdbc.pwd = <%= p('jdbc_pwd')%>
+jdbc.url = jdbc:mysql://<%= p('jdbc_ip')%>:3306
+jdbc.host = <%= p('jdbc_ip')%>
+jdbc.port = <%= p('jdbc_port')%>

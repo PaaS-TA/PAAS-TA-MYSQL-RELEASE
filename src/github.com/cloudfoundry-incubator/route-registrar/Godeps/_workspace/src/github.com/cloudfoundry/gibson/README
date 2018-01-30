@@ -1,0 +1,50 @@
+
+                          ,dPYb,
+                          IP'`Yb
+                     gg   I8  8I
+                     ""   I8  8'
+          ,gggg,gg   gg   I8 dP       ,g,       ,ggggg,    ,ggg,,ggg,
+         dP"  "Y8I   88   I8dP   88gg,8'8,     dP"  "Y8ggg,8" "8P" "8,
+        i8'    ,8I   88   I8P    8I ,8'  Yb   i8'    ,8I  I8   8I   8I
+        d8,   ,d8I _,88,_,d8b,  ,8I,8'_   8) ,d8,   ,d8' ,dP   8I   Yb,
+         Y8888P"8888P""Y88P'"Y88P"'P' "YY8P8PP"Y8888P"   8P'   8I   `Y8
+              ,d8I'
+            ,dP'8I
+           ,8"  8I
+           I8   8I
+           `8, ,8I
+            `Y8P"
+
+
+= About
+
+Client library for interacting with Cloud Foundry's Router.
+
+See https://github.com/cloudfoundry/gorouter
+
+
+= Usage
+
+    client := gibson.NewCFRouterClient("10.10.16.13", messageBus)
+
+    // set up periodic registration
+    // optional if all you want is a one-off registration
+    client.Greet()
+
+    client.Register(1234, "myhost.com")
+    client.Unregister(1234, "myhost.com")
+
+= Registrar Executable
+
+If you don't care to write your own CF Router adapter, you can use the
+`registrar` executable instead:
+
+    go install github.com/cloudfoundry/gibson/registrar
+
+    registrar -ip=my.local.address \
+      -natsAddresses=1.2.3.4:4222
+      -natsUsername=nats \
+      -natsPassword=nats \
+      -routes=8080:example.com,8081:example.org
+
+The registrar will stay running and continue registering the given routes.

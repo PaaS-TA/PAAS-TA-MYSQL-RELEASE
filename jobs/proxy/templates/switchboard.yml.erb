@@ -1,0 +1,17 @@
+"API":
+  "Port": <%= p('proxy.api_port') %>
+  "ForceHttps": <%= p('proxy.api_force_https') %>
+  "Username": <%= p('proxy.api_username') %>
+  "Password": <%= p('proxy.api_password') %>
+"Proxy":
+  "Port": <%= p('proxy.port') %>
+  "HealthcheckTimeoutMillis": <%= p("proxy.healthcheck_timeout_millis") %>
+  "Backends":
+  <% p('cluster_ips').each_with_index do |ip, n| %>
+  - "Host": <%= ip %>
+    "Port": 3306
+    "HealthcheckPort": 9200
+    "Name": "backend-<%= n %>"
+  <% end %>
+"HealthPort": <%= p('proxy.health_port') %>
+"ProfilerPort": 6060

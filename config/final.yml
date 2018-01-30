@@ -1,0 +1,9 @@
+---
+final_name: openpaas-mysql
+min_cli_version: 1.5.0.pre.1113
+blobstore:
+ # provider: s3
+  provider: local
+  options:
+    blobstore_path: /tmp/mysql-blobs
+    #bucket_name: mysql-service-blobs

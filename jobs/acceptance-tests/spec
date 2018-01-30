@@ -1,0 +1,60 @@
+---
+name: acceptance-tests
+packages:
+- golang
+- acceptance-tests
+- cli
+
+templates:
+  errand.sh.erb: bin/run
+
+properties:
+  cf.api_url:
+    description: 'Full URL of Cloud Foundry API'
+  cf.admin_username:
+    description: 'Username of the admin user'
+  cf.admin_password:
+    description: 'Password of the admin user'
+  cf.apps_domain:
+    description: 'Shared domain for pushed apps'
+  cf.skip_ssl_validation:
+    description: 'Whether to add --skip-ssl-validation for cf cli'
+    default: false
+
+  broker.host:
+    description: 'Host for the broker. Should be the same as jobs.cf-mysql-broker.properties.external_host'
+
+  service.name:
+    description: 'Name of the MySQL service'
+  service.plans:
+    description: 'Array of MySQL plans'
+
+  service.max_user_connections_default:
+    description: 'number of user connections to allow in a plan if not specified'
+    default: 40
+
+  org_name:
+    description: 'The name of the Org to run acceptance tests against'
+    default: ''
+
+  smoke_tests_only:
+    description: 'Instead of running the full acceptance test suite, only run a shorter smoke test'
+    default: true
+
+  proxy.external_host:
+    description: 'Proxy external host (e.g. p-mysql.example.com => proxy-0.p-mysql.example.com)'
+  proxy.api_username:
+    description: 'Proxy API username'
+  proxy.api_password:
+    description: 'Proxy API password'
+  proxy.api_force_https:
+    description: 'Expect proxy to force redirect to HTTPS'
+    default: true
+  proxy.skip_ssl_validation:
+    description: 'Tests will skip validation of SSL certificates'
+    default: true
+
+
+  timeout_scale:
+    description: 'scaling multiplier used to determine command timeouts'
+    default: 1

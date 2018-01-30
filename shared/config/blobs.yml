@@ -1,0 +1,22 @@
+---
+sqlite/sqlite-autoconf-3070500.tar.gz:
+  object_id: rest/objects/4e4e78bca11e121004e4e7d511f82104f3068661ccfa
+  sha: 4e1338497b8da50b84307191bb3418e9ec5715d7
+  size: 1551070
+ruby/rubygems-1.8.24.tgz:
+  object_id: rest/objects/4e4e78bca41e122204e4e9863d076304fa1cc28797a9
+  sha: 30f27047e74f7943117736a0d3e224994fee0905
+  size: 380101
+ruby/bundler-1.2.1.gem:
+  object_id: rest/objects/4e4e78bca31e121204e4e86ee39692050a16252f052f
+  sha: 0cbe6ad7a41f064d6c11c1058465fffb1bd58069
+  size: 226816
+libyaml/yaml-0.1.4.tgz:
+  object_id: rest/objects/4e4e78bca51e122004e4e8ec6840770511d35ffc91bd
+  sha: e0e5e09192ab10a607e3da2970db492118f560f2
+  size: 471759
+ruby/ruby-1.9.3-p484.tar.gz:
+  object_id: 51971a13-94b2-4ef7-8c00-3e67832820f6
+  sha: !binary |-
+    NmFlODBmNDI0OTY4YjVjZTY2MWVlOWIyYmVlMWMyMWFkYzllZTY3Yw==
+  size: 12576996

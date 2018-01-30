@@ -1,0 +1,46 @@
+# abort script on any command that exits with a non zero value
+set -e
+
+MARIADB_VERSION=10.0.19
+
+tar xzf mariadb/mariadb-galera-${MARIADB_VERSION}.tar.gz
+(
+  set -e
+  cd mariadb-${MARIADB_VERSION}
+  mkdir bld
+  cd bld
+
+  cmake .. \
+      -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
+      -DWITH_WSREP=ON \
+      -DWITH_INNODB_DISALLOW_WRITES=1 \
+      -DWITH_PCRE=bundled
+
+  #
+  # Go Agent cannot handle more than 10MB output, so trim it
+  #
+  set +e
+  make -j 3 > build.out 2> build.err
+  BUILD_EXIT_CODE=$?
+  set -e
+
+  if [ $BUILD_EXIT_CODE -ne 0 ]; then
+      tail -n 1000 build.err
+      exit $BUILD_EXIT_CODE
+  fi
+  tail -n 1000 build.out
+
+  make install > build.out 2> build.err
+  BUILD_EXIT_CODE=$?
+  set -e
+
+  if [ $BUILD_EXIT_CODE -ne 0 ]; then
+      tail -n 1000 build.err
+      exit $BUILD_EXIT_CODE
+  fi
+  tail -n 1000 build.out
+
+  echo -n "${MARIADB_VERSION}-MariaDB" > ${BOSH_INSTALL_TARGET}/VERSION
+  cp /var/vcap/packages/galera/garbd ${BOSH_INSTALL_TARGET}/bin/
+  cp /var/vcap/packages/galera/libgalera_smm.so ${BOSH_INSTALL_TARGET}/lib/plugin/
+)

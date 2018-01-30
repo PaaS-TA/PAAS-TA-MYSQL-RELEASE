@@ -1,0 +1,54 @@
+{
+	"ImportPath": "github.com/cloudfoundry-incubator/route-registrar",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/apcera/nats",
+			"Comment": "v1.0.6-17-gd19a6ce",
+			"Rev": "d19a6cec4083353ca586e7052a89e0f719946ee5"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/cf-lager",
+			"Rev": "7178833173e7124dab16158273f7708ed73b81ff"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry/gibson",
+			"Rev": "b22bf427d4ffcc52a09b4aab871bc982990c552f"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry/yagnats",
+			"Rev": "07171a8863c377fb14a44dee402dff9e1282bc49"
+		},
+		{
+			"ImportPath": "github.com/fraenkel/candiedyaml",
+			"Rev": "84842532f8194fe186b48a009251dfaec9924ccd"
+		},
+		{
+			"ImportPath": "github.com/imdario/mergo",
+			"Comment": "0.2.0-3-g2fcac99",
+			"Rev": "2fcac9923693d66dc0e03988a31b21da05cdea84"
+		},
+		{
+			"ImportPath": "github.com/nu7hatch/gouuid",
+			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.1.0-28-g7d3d52b",
+			"Rev": "7d3d52b3a3a79d745c2a03ee81b5bc2086642201"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0-25-g85936b2",
+			"Rev": "85936b29809b7df066a8d839dd105e158e510264"
+		},
+		{
+			"ImportPath": "github.com/pivotal-cf-experimental/service-config",
+			"Rev": "082c03bb0ac6627891c8270d45d4ca8652e1dce4"
+		},
+		{
+			"ImportPath": "github.com/pivotal-golang/lager",
+			"Rev": "09a71f6eb2dcc1c2335e37ceb78a91c6f618d561"
+		}
+	]
+}

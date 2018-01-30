@@ -1,0 +1,35 @@
+#!/bin/bash -e
+
+set -e
+
+JOB_DIR=/var/vcap/jobs/op-mysql-java-broker
+PACKAGE_DIR=/var/vcap/packages/op-mysql-java-broker
+JAVA_DIR=/var/vcap/packages/openjdk-1.8.0_45
+JOB_NAME=op-mysql-java-broker
+
+source /var/vcap/jobs/op-mysql-java-broker/helpers/ctl_setup.sh $JOB_NAME
+
+case $1 in
+
+  start)
+
+    pid_guard $PIDFILE $JOB_NAME
+
+    $JAVA_DIR/bin/java -cp "$PACKAGE_DIR/openpaas-service-java-broker-mysql.jar:/var/vcap/jobs/op-mysql-java-broker/config" org.springframework.boot.loader.JarLauncher\
+                  --spring.config.name=$JOB_NAME \
+                  >>$LOG_DIR/$JOB_NAME.stdout.log \
+                  2>>$LOG_DIR/$JOB_NAME.stderr.log &    
+
+    echo $! > $PIDFILE
+    ;;
+  stop)
+
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: op-mysql-java-broker_ctl {start|stop}"
+    ;;
+
+esac

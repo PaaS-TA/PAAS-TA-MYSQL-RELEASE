@@ -1,0 +1,6 @@
+/out/*
+tmp/
+**/*.test
+
+config.yaml
+config.json

@@ -1,0 +1,5 @@
+check process op-mysql-java-broker
+  with pidfile /var/vcap/sys/run/op-mysql-java-broker/op-mysql-java-broker.pid
+  start program "/var/vcap/jobs/op-mysql-java-broker/bin/monit_debugger op-mysql-java-broker_ctl '/var/vcap/jobs/op-mysql-java-broker/bin/op-mysql-java-broker_ctl start'"
+  stop program "/var/vcap/jobs/op-mysql-java-broker/bin/monit_debugger op-mysql-java-broker_ctl '/var/vcap/jobs/op-mysql-java-broker/bin/op-mysql-java-broker_ctl stop'"
+  group vcap

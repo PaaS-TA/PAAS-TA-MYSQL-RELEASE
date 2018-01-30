@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eux
+
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+go install -v github.com/onsi/ginkgo/ginkgo
+
+source $MY_DIR/test-options.sh
+
+ginkgo $GINKGO_OPTS "$@" $TEST_DIR/dashboard

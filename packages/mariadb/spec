@@ -1,0 +1,8 @@
+---
+name: mariadb
+
+dependencies:
+- galera
+
+files:
+- mariadb/**/*
