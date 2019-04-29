@@ -5,7 +5,11 @@
 - proxy :: 1 machine
 - mysql_z1 :: 1 machine
 
-##2. Deploy
+##2. download
+- $wget -O download.zip http://45.248.73.44/index.php/s/2SH69w9TWfLBKLi/download
+- $unzip download.zip
+
+##3. Deploy
 >`$ cd $BOSH_RELEASE_DIR`<br>
 >`$ bosh deployment paasta-mysql-vsphere-1.0.yml`<br>
 >`$ bosh deploy`
