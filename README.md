@@ -6,7 +6,9 @@
 - mysql_z1 :: 1 machine
 
 ##2. download
-- $wget -O download.zip http://45.248.73.44/index.php/s/2SH69w9TWfLBKLi/download
+- $rm -rf ./src/*
+- $cd ./src
+- $wget -O download.zip http://45.248.73.44/index.php/s/nRiKxoQrWjXg9MS/download
 - $unzip download.zip
 
 ##3. Deploy
