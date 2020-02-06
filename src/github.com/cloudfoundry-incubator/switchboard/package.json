@@ -41,6 +41,6 @@
     "correcting-interval": "^2.0.0",
     "lodash.sortby": "^3.0.0",
     "react": "^0.12.2",
-    "superagent": "^0.21.0"
+    "superagent": "^5.2.1"
   }
 }
