@@ -1,0 +1,25 @@
+---
+name: bootstrap
+packages:
+  - bootstrap
+templates:
+  errand.sh.erb: bin/run
+  config.yml.erb: config/config.yml
+
+consumes:
+- name: mysql
+  type: mysql
+  optional: true
+- name: arbitrator
+  type: arbitrator
+  optional: true
+
+properties:
+  cf_mysql.mysql.galera_healthcheck.port:
+    description: 'Port used by healthcheck process to listen on'
+    default: 9200
+  cf_mysql.mysql.galera_healthcheck.endpoint_username:
+    description: 'Username used to contact the sidecar endpoints via Basic Auth'
+    default: galera-healthcheck
+  cf_mysql.mysql.galera_healthcheck.endpoint_password:
+    description: 'Password used to contact the sidecar endpoints via Basic Auth'

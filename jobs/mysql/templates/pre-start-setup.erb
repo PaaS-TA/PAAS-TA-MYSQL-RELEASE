@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+<% if p('cf_mysql_enabled') == true %>
+set -eo pipefail
+
+## NOTE: This script MUST ALWAYS run as root user.
+
+export TMPDIR=/var/vcap/data/mysql/tmp
+
+datadir=/var/vcap/store/mysql
+LOG_DIR=/var/vcap/sys/log/mysql
+LOG_FILE=$LOG_DIR/pre-start.stdout.log
+SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
+HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-healthcheck"
+MARIADB_JOB_DIR=/var/vcap/jobs/mysql
+JOB_INDEX=<%= index %>
+PERSISTENT_TMP_DIR=/var/vcap/data/tmp
+SECURE_FILE_PRIV=/var/vcap/data/mysql/files
+
+source /var/vcap/packages/cf-mysql-common/logging.sh
+source /var/vcap/packages/cf-mysql-common/pid_utils.sh
+
+log "pre-start setup script: set up ENV and logging"
+
+if [[ ! -d "$TMPDIR" ]]; then
+  log "pre-start setup script: directory $TMPDIR does not exist, creating it now"
+  mkdir -p $TMPDIR
+fi
+chown -R vcap:vcap $TMPDIR
+
+mkdir -p $SECURE_FILE_PRIV
+chmod 0750 $SECURE_FILE_PRIV
+chown -R vcap:vcap $SECURE_FILE_PRIV
+
+mkdir -p $LOG_DIR
+touch $LOG_FILE
+touch $SLOW_QUERY_LOG_FILE
+chown -R vcap:vcap $LOG_DIR
+date >> $LOG_FILE 2>> $LOG_FILE
+date >> $SLOW_QUERY_LOG_FILE 2>> $SLOW_QUERY_LOG_FILE
+mkdir -p "${HEALTHCHECK_LOG_DIR}"
+chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
+
+/var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \
+    -f /var/vcap/jobs/mysql/config/auto-tune.cnf \
+    -P <%= p('cf_mysql.mysql.innodb_buffer_pool_size_percent') %>
+
+rm -f /etc/profile.d/disable_mysql_cli_history.sh
+<% unless p('cf_mysql.mysql.cli_history') %>
+ln -sf $MARIADB_JOB_DIR/config/disable_mysql_cli_history.sh /etc/profile.d/disable_mysql_cli_history.sh
+<% end %>
+
+ulimit -n <%= p('cf_mysql.mysql.max_open_files') %>
+
+<% if p('cf_mysql.mysql.disable_auto_sst') %>
+if [ -d ${datadir} ]; then
+  export DISABLE_SST=1
+fi
+<% end %>
+
+function check_mysql_disk_persistence() {
+  if [[ (! -d /var/vcap/store) || $(mountpoint -d /var/vcap/store) == $(mountpoint -d /) ]]
+  then
+    err "Persistent disk not found"
+    exit 1
+  fi
+}
+
+function check_mysql_disk_capacity() {
+  local datadir_capacity=$(df --block-size=1M --output=target,size /var/vcap/store | awk ' NR==2 { print $2 } ')
+  local minimum_required_space_in_mb=5000
+  if [[ "${datadir_capacity}" -lt "${minimum_required_space_in_mb}" ]]
+  then
+    err "Datadir capacity is ${datadir_capacity}MB, which is under the minimum required: ${minimum_required_space_in_mb}MB"
+    exit 1
+  fi
+}
+
+check_mysql_disk_persistence
+check_mysql_disk_capacity
+
+if ! test -d ${datadir}; then
+  log "pre-start setup script: making ${datadir} and running /var/vcap/packages/mariadb/scripts/mysql_install_db"
+  mkdir -p ${datadir}
+  /var/vcap/packages/mariadb/scripts/mysql_install_db \
+         --defaults-file=/var/vcap/jobs/mysql/config/my.cnf \
+         --basedir=/var/vcap/packages/mariadb \
+         --user=vcap \
+         --datadir=${datadir} >> $LOG_FILE 2>> $LOG_FILE
+fi
+chown -R vcap:vcap ${datadir}
+
+rm -f /etc/my.cnf
+
+MARIADB_CTRL_PREFIX_CMD="chpst -u vcap:vcap bash -c" ${MARIADB_JOB_DIR}/bin/pre-start-execution
+<% end %>

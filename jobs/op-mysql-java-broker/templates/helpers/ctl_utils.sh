@@ -1,5 +1,5 @@
 # Helper functions used by ctl scripts
-
+  
 # links a job file (probably a config file) into a package
 # Example usage:
 # link_job_file_to_package config/redis.yml [config/redis.yml]
@@ -15,6 +15,7 @@ link_job_file_to_package() {
 # links a job file (probably a config file) somewhere
 # Example usage:
 # link_job_file config/bashrc /home/vcap/.bashrc
+
 link_job_file() {
   source_job_file=$1
   target_file=$2
@@ -30,7 +31,7 @@ link_job_file() {
     # deleted, so don't attempt to create the symlink
     mkdir -p $(dirname ${target_file})
     ln -nfs ${full_job_file} ${target_file}
-  fi
+fi
 }
 
 # If loaded within monit ctl scripts then pipe output

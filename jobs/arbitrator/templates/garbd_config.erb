@@ -1,0 +1,10 @@
+<%
+  cluster_ips = []
+  cluster_ips = link('mysql').instances.map { |instance| instance.address }
+  cluster_ips += link('arbitrator').instances.map { |instance| instance.address }
+%>
+
+group = cf-mariadb-galera-cluster
+<% galera_port = p('cf_mysql.mysql.galera_port') %>
+<% node_addresses = cluster_ips.map { |ip| "#{ip}:#{galera_port}" } %>
+address = gcomm://<%= node_addresses.join(',') %>

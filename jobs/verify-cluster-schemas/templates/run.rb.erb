@@ -1,0 +1,35 @@
+#!/var/vcap/packages/ruby/bin/ruby
+
+require '/var/vcap/packages/cluster-schema-verifier/cluster_schema_verifier.rb'
+
+<%
+  cluster_ips = link('mysql').instances.map(&:address).compact
+  galera_healthcheck_port = link('mysql').p('cf_mysql.mysql.galera_healthcheck.port')
+
+  arbitrator_ip = nil
+  if_link('arbitrator') do |arbitrator|
+    arbitrator_ip = arbitrator.instances.map(&:address).first
+  end
+%>
+
+config = {
+    cluster_ips: <%= cluster_ips %>,
+    arbitrator_ip: '<%= arbitrator_ip %>',
+    mysql_port: <%= p('cf_mysql.mysql.port') %>,
+    healthcheck_port: <%= galera_healthcheck_port %>,
+    mysql_user: '<%= p('cf_mysql.mysql.admin_username') %>',
+    mysql_password: '<%= p('cf_mysql.mysql.admin_password') %>',
+    healthcheck_user: '<%= p('cf_mysql.mysql.galera_healthcheck.endpoint_username') %>',
+    healthcheck_password: '<%= p('cf_mysql.mysql.galera_healthcheck.endpoint_password') %>'
+}
+
+if !ClusterSchemaVerifier.new(config).cluster_schemas_valid?
+  puts '##################################################################################'
+  puts '# Error: Cluster schemas are not consistent'
+  puts '##################################################################################'
+  exit 1
+else
+  puts '##################################################################################'
+  puts '# Success: All schemas are equal'
+  puts '##################################################################################'
+end

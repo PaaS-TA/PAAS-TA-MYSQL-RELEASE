@@ -1,25 +1,38 @@
 ---
+<%
+  cluster_ips = link('mysql').instances.map(&:address)
+
+  if_link('arbitrator') do
+    cluster_ips += link('arbitrator').instances.map(&:address)
+  end
+%>
+
 LogFileLocation: /var/vcap/sys/log/mysql/mariadb_ctrl.combined.log
 PidFile: /var/vcap/sys/run/mariadb_ctl/mariadb_ctl.pid
+ChildPidFile: /var/vcap/sys/run/mysql/mysql.pid
 Db:
   DaemonPath: /var/vcap/packages/mariadb_ctrl/bin/mysql_daemon.sh
   UpgradePath: /var/vcap/packages/mariadb/bin/mysql_upgrade
-  User: <%= p('admin_username')%>
-  Password: <%= p('admin_password')%>
+  User: <%= p('cf_mysql.mysql.admin_username')%>
+  Password: <%= p('cf_mysql.mysql.admin_password')%>
   PreseededDatabases:
-  <% p("seeded_databases").each do |seed| %>
+  <% p("cf_mysql.mysql.seeded_databases").each do |seed| %>
   - DBName: <%= seed["name"] %>
     User: <%= seed["username"]%>
     Password: <%= seed["password"] %>
   <% end %>
+  PostStartSQLFiles:
+  - /var/vcap/jobs/mysql/config/galera_healthcheck_setup.sql
+  - /var/vcap/jobs/mysql/config/cluster_health_logger_setup.sql
+  Socket: /var/vcap/sys/run/mysql/mysqld.sock
 Upgrader:
   PackageVersionFile: /var/vcap/packages/mariadb/VERSION
   LastUpgradedVersionFile: /var/vcap/store/mysql/mysql_upgrade_info
 Manager:
   StateFileLocation: /var/vcap/store/mysql/state.txt
   ClusterIps:
-  <% p('cluster_ips').each do |ip| %>
+  <% cluster_ips.each do |ip| %>
   - <%= ip %>
   <% end %>
-  MyIP: <%= spec.networks.send(p('network_name')).ip %>
-  MaxDatabaseSeedTries: 30
+  BootstrapNode: <%= spec.bootstrap && p("cf_mysql.mysql.bootstrap_enabled") %>
+  ClusterProbeTimeout: <%= p('cf_mysql.mysql.cluster_probe_timeout') %>

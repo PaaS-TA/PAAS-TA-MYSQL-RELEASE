@@ -1,7 +1,7 @@
 # mysql Database Settings
 jdbc.driver = org.mariadb.jdbc.Driver
 jdbc.username = root
-jdbc.pwd = <%= p('jdbc_pwd')%>
-jdbc.url = jdbc:mysql://<%= p('jdbc_ip')%>:3306
-jdbc.host = <%= p('jdbc_ip')%>
-jdbc.port = <%= p('jdbc_port')%>
+jdbc.pwd = <%= link('mysql').p('cf_mysql.mysql.admin_password')%>
+jdbc.url = jdbc:mysql://<%= link('proxy').instances[0].address%>:<%= link('proxy').p('cf_mysql.proxy.port')%>
+jdbc.host = <%= link('proxy').instances[0].address%>
+jdbc.port = <%= link('proxy').p('cf_mysql.proxy.port')%>
