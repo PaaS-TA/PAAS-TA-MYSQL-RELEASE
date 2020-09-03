@@ -3,18 +3,26 @@ package api
 import (
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/switchboard/api/middleware"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/pivotal-golang/lager"
 )
 
-func NewHandler(backends domain.Backends, logger lager.Logger, apiConfig config.API, staticDir string) http.Handler {
+//go:generate counterfeiter -o apifakes/fake_response_writer.go /usr/local/opt/go/libexec/src/net/http/server.go ResponseWriter
+func NewHandler(
+	cluster ClusterManager,
+	backends []*domain.Backend,
+	logger lager.Logger,
+	apiConfig config.API,
+	staticDir string,
+) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("/", http.FileServer(http.Dir(staticDir)))
 
-	mux.Handle("/v0/backends", BackendsIndex(backends))
+	mux.Handle("/v0/backends", BackendsIndex(backends, cluster))
+	mux.Handle("/v0/cluster", Cluster(cluster, logger))
 
 	return middleware.Chain{
 		middleware.NewPanicRecovery(logger),

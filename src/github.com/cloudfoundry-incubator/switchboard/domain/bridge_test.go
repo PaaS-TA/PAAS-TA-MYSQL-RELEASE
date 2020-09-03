@@ -4,36 +4,34 @@ import (
 	"errors"
 	"io"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/domain/fakes"
+	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Bridge", func() {
 	Describe("#Connect", func() {
-		var bridge domain.Bridge
-		var client, backend *fakes.FakeConn
-		var logger lager.Logger
+		var (
+			bridge          domain.Bridge
+			client, backend *domainfakes.FakeConn
+			logger          lager.Logger
+		)
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("Bridge test")
-			backend = &fakes.FakeConn{}
-			client = &fakes.FakeConn{}
+			backend = new(domainfakes.FakeConn)
+			client = new(domainfakes.FakeConn)
 
-			clientAddr := &fakes.FakeAddr{}
-			backendAddr := &fakes.FakeAddr{}
-
-			client.RemoteAddrReturns(clientAddr)
-			backend.RemoteAddrReturns(backendAddr)
+			backend.ReadReturns(0, io.EOF)
+			client.ReadReturns(0, io.EOF)
 
 			bridge = domain.NewBridge(client, backend, logger)
 		})
 
 		Context("When operating normally", func() {
-
 			It("forwards data from the client to backend", func() {
 				expectedText := "hello"
 				var copiedToBackend string

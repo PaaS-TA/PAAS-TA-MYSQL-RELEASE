@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type PanicRecovery struct {
@@ -20,7 +20,6 @@ func (p PanicRecovery) Wrap(next http.Handler) http.Handler {
 			if panicInfo := recover(); panicInfo != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
 				p.logger.Error("Panic while serving request", nil, lager.Data{
-					"request":   req,
 					"panicInfo": panicInfo,
 				})
 			}

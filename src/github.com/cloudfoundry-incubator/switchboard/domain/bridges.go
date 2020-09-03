@@ -5,11 +5,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 var BridgeProvider = NewBridge
 
+//go:generate counterfeiter . Bridges
 type Bridges interface {
 	Create(clientConn, backendConn net.Conn) Bridge
 	Remove(bridge Bridge) error

@@ -8,4 +8,8 @@ go install -v github.com/onsi/ginkgo/ginkgo
 
 source $MY_DIR/test-options.sh
 
-ginkgo $GINKGO_OPTS -skipPackage="failover,dashboard,quota" "$@"
+ginkgo $GINKGO_OPTS \
+  "$@" \
+  "${TEST_DIR}/broker/broker.test" \
+  "${TEST_DIR}/lifecycle/lifecycle.test" \
+  "${TEST_DIR}/proxy/proxy.test"

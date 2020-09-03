@@ -1,17 +1,17 @@
 package os_helper
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
 )
 
+//go:generate counterfeiter . OsHelper
 type OsHelper interface {
 	RunCommand(executable string, args ...string) (string, error)
-	RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error
 	StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error)
+	WaitForCommand(cmd *exec.Cmd) chan error
 	FileExists(filename string) bool
 	ReadFile(filename string) (string, error)
 	WriteStringToFile(filename string, contents string) error
@@ -34,38 +34,9 @@ func (h OsHelperImpl) RunCommand(executable string, args ...string) (string, err
 	return string(out), nil
 }
 
-// Runs command with stdout and stderr pipes connected to process
-func (h OsHelperImpl) RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error {
-	cmd := exec.Command(executable, args...)
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-
-	maxRunTime := time.Duration(timeout) * time.Second
-	errChannel := make(chan error, 1)
-	readyChan := make(chan interface{})
-	go func() {
-		cmd.Start()
-		close(readyChan)
-		errChannel <- cmd.Wait()
-	}()
-
-	<-readyChan
-	select {
-	case <-time.After(maxRunTime):
-		cmd.Process.Kill()
-		return errors.New("Command timed out")
-	case err := <-errChannel:
-		return err
-	}
-}
-
 func (h OsHelperImpl) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(executable, args...)
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY, 0666)
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +45,14 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 
 	cmd.Start()
 	return cmd, nil
+}
+
+func (h OsHelperImpl) WaitForCommand(cmd *exec.Cmd) chan error {
+	errChannel := make(chan error, 1)
+	go func() {
+		errChannel <- cmd.Wait()
+	}()
+	return errChannel
 }
 
 func (h OsHelperImpl) FileExists(filename string) bool {

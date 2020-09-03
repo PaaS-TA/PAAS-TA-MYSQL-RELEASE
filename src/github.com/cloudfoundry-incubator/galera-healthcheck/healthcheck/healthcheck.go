@@ -2,9 +2,14 @@ package healthcheck
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 
-	"github.com/pivotal-golang/lager"
+	"net/http"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 )
 
 const (
@@ -14,83 +19,76 @@ const (
 	STATE_SYNCED         = 4
 )
 
-type Healthchecker struct {
+type HealthChecker struct {
 	db     *sql.DB
-	config Config
+	config config.Config
 	logger lager.Logger
 }
 
-type Config struct {
-	DB                    DBConfig
-	Host                  string `json:",omitempty"`
-	Port                  int    `json:",omitempty"`
-	AvailableWhenDonor    bool   `json:",omitempty"`
-	AvailableWhenReadOnly bool   `json:",omitempty"`
-}
-
-type DBConfig struct {
-	Host     string `json:",omitempty"`
-	User     string `json:",omitempty"`
-	Port     int    `json:",omitempty"`
-	Password string `json:",omitempty"`
-}
-
-func New(db *sql.DB, config Config, logger lager.Logger) *Healthchecker {
-	return &Healthchecker{
+func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
+	return &HealthChecker{
 		db:     db,
 		config: config,
 		logger: logger,
 	}
 }
 
-func (h *Healthchecker) Check() (bool, string) {
-	h.logger.Info("Checking state of galera...")
+func (h *HealthChecker) CheckReq(req *http.Request) (string, error) {
+	return h.Check()
+}
+
+func (h *HealthChecker) Check() (string, error) {
+	if h.config.Monit.ServiceName == "garbd" {
+		return "", errors.New("arbitrator node")
+	}
 
 	var unused string
 	var value int
 	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&unused, &value)
 
 	if err == sql.ErrNoRows {
-		return false, "wsrep_local_state variable not set (possibly not a galera db)"
-	}
-
-	if err != nil {
-		return false, err.Error()
+		return "", errors.New("wsrep_local_state variable not set (possibly not a galera db)")
+	} else if err != nil {
+		if strings.Contains(err.Error(), "connection refused") {
+			return "", errors.New("Cannot get status from galera")
+		} else {
+			return "", err
+		}
 	}
 
 	switch value {
 	case STATE_JOINING:
-		return false, "joining"
+		return "", errors.New("joining")
 	case STATE_DONOR_DESYNCED:
 		if h.config.AvailableWhenDonor {
 			return h.healthy(value)
 		}
-		return false, "not synced"
+		return "", errors.New("not synced")
 	case STATE_JOINED:
-		return false, "joined"
+		return "", errors.New("joined")
 	case STATE_SYNCED:
 		return h.healthy(value)
 	default:
-		return false, fmt.Sprintf("Unrecognized state: %d", value)
+		return "", fmt.Errorf("Unrecognized state: %d", value)
 	}
 
 }
 
-func (h Healthchecker) healthy(value int) (bool, string) {
+func (h *HealthChecker) healthy(value int) (string, error) {
 	if !h.config.AvailableWhenReadOnly {
 		readOnly, err := h.isReadOnly()
 		if err != nil {
-			return false, err.Error()
+			return "", err
 		}
 
 		if readOnly {
-			return false, "read-only"
+			return "", errors.New("read-only")
 		}
 	}
-	return true, "synced"
+	return "synced", nil
 }
 
-func (h Healthchecker) isReadOnly() (bool, error) {
+func (h *HealthChecker) isReadOnly() (bool, error) {
 	var unused, readOnly string
 	err := h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
 	if err != nil {

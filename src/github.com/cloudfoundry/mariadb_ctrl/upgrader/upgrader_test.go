@@ -3,27 +3,27 @@ package upgrader_test
 import (
 	"errors"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
-	db_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Upgrader", func() {
 	var upgrader Upgrader
-	var fakeOs *os_fakes.FakeOsHelper
-	var fakeDbHelper *db_fakes.FakeDBHelper
+	var fakeOs *os_helperfakes.FakeOsHelper
+	var fakeDbHelper *mariadb_helperfakes.FakeDBHelper
 	var testLogger *lagertest.TestLogger
 
 	lastUpgradedVersionFile := "/var/vcap/store/mysql/mysql_upgrade_info"
 	packageVersionFile := "/var/vcap/package/mariadb/VERSION"
 
 	BeforeEach(func() {
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeDbHelper = new(db_fakes.FakeDBHelper)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
+		fakeDbHelper = new(mariadb_helperfakes.FakeDBHelper)
 		testLogger = lagertest.NewTestLogger("upgrader")
 
 		upgrader = NewUpgrader(
@@ -50,38 +50,13 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
-			expectedPollingCounts := DBReachablePollingAttempts + 1
+			expectedPollingCounts := DBReachablePollingAttempts
 			err := upgrader.Upgrade()
-			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StartMysqldInStandAloneCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StopMysqldCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the mysql start command fails", func() {
-			It("quits early and returns an error", func() {
-				fakeDbHelper.StartMysqldInModeStub = func(mode string) error {
-					return errors.New("BOOM")
-				}
-				err := upgrader.Upgrade()
-				Expect(err).To(HaveOccurred())
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when the database server is not available after "+string(DBReachablePollingAttempts)+" attempts to reconnect", func() {
-			BeforeEach(func() {
-				fakeDbHelper.IsDatabaseReachableStub = func() bool {
-					return false
-				}
-			})
-
-			It("returns an error", func() {
-				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(DBReachablePollingAttempts))
-				Expect(err).To(HaveOccurred())
-			})
 		})
 
 		Context("when the upgrade script returns an acceptable error", func() {
@@ -110,35 +85,6 @@ var _ = Describe("Upgrader", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
-
-		Context("when the mysql stop script fails", func() {
-			BeforeEach(func() {
-				fakeDbHelper.StopStandaloneMysqlStub = func() error {
-					return errors.New("exited 1")
-				}
-			})
-
-			It("considers the upgrade a failure", func() {
-				err := upgrader.Upgrade()
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DBReachablePollingAttempts)+" times", func() {
-			expectedPollingCounts := DBReachablePollingAttempts + 1
-			BeforeEach(func() {
-				fakeDbHelper.IsDatabaseReachableStub = func() bool {
-					return true
-				}
-			})
-
-			It("returns an error", func() {
-				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
 	})
 
 	Describe("NeedsUpgrade", func() {
@@ -175,7 +121,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when we fail to read the last upgraded version file in the MySQL datadir", func() {
+		Context("when we fail to read the last upgraded version file in the mysqld datadir", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -217,7 +163,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the last upgraded version in the MySQL datadir matches the Mariadb package version", func() {
+		Context("when the last upgraded version in the mysqld datadir matches the Mariadb package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -239,7 +185,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the version in the MySQL datadir does not match the Mariadb package version", func() {
+		Context("when the version in the mysqld datadir does not match the Mariadb package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 

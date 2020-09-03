@@ -4,51 +4,64 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/switchboard/api"
-	apifakes "github.com/cloudfoundry-incubator/switchboard/api/fakes"
+	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	domainfakes "github.com/cloudfoundry-incubator/switchboard/domain/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Handler", func() {
 	var (
 		handler          http.Handler
 		responseRecorder *httptest.ResponseRecorder
+		cfg              config.API
+		cluster          *apifakes.FakeClusterManager
 	)
 
 	JustBeforeEach(func() {
-		backends := &domainfakes.FakeBackends{}
+		backends := []*domain.Backend{}
+
+		cluster = new(apifakes.FakeClusterManager)
 		logger := lagertest.NewTestLogger("Handler Test")
-		config := config.API{
-			ForceHttps: true,
-		}
+
 		staticDir := ""
-		handler = api.NewHandler(backends, logger, config, staticDir)
+		handler = api.NewHandler(
+			cluster,
+			backends,
+			logger,
+			cfg,
+			staticDir,
+		)
 	})
 
 	Context("when a request panics", func() {
 		var (
-			realBackendsIndex func(backends domain.Backends) http.Handler
+			realBackendsIndex func([]*domain.Backend, api.ClusterManager) http.Handler
 			responseWriter    *apifakes.FakeResponseWriter
 			request           *http.Request
 		)
 
 		BeforeEach(func() {
+			cfg = config.API{
+				ForceHttps: false,
+				Username:   "foo",
+				Password:   "bar",
+			}
 			realBackendsIndex = api.BackendsIndex
-			api.BackendsIndex = func(domain.Backends) http.Handler {
+			api.BackendsIndex = func([]*domain.Backend, api.ClusterManager) http.Handler {
 				return http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 					panic("fake request panic")
 				})
 			}
 
-			responseWriter = &apifakes.FakeResponseWriter{}
+			responseWriter = new(apifakes.FakeResponseWriter)
 			var err error
 			request, err = http.NewRequest("GET", "/v0/backends", nil)
 			Expect(err).NotTo(HaveOccurred())
+			request.SetBasicAuth("foo", "bar")
 		})
 
 		AfterEach(func() {
@@ -68,6 +81,9 @@ var _ = Describe("Handler", func() {
 		var request *http.Request
 
 		BeforeEach(func() {
+			cfg = config.API{
+				ForceHttps: true,
+			}
 			responseRecorder = httptest.NewRecorder()
 			request, _ = http.NewRequest("GET", "http://localhost/foo/bar", nil)
 			request.Header.Set("X-Forwarded-Proto", "http")

@@ -4,41 +4,82 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+
+	"flag"
+
+	"code.cloudfoundry.org/cflager"
+	"code.cloudfoundry.org/lager"
 )
 
 type Config struct {
-	LogFileLocation string `validate:"nonzero"`
-	PidFile         string `validate:"nonzero"`
-	Db              DBHelper
-	Manager         StartManager
-	Upgrader        Upgrader
+	LogFileLocation string       `yaml:"LogFileLocation" validate:"nonzero"`
+	PidFile         string       `yaml:"PidFile" validate:"nonzero"`
+	ChildPidFile    string       `yaml:"ChildPidFile" validate:"nonzero"`
+	Db              DBHelper     `yaml:"Db"`
+	Manager         StartManager `yaml:"Manager"`
+	Upgrader        Upgrader     `yaml:"Upgrader"`
+	Prestart        bool
+	Logger          lager.Logger
 }
 
 type DBHelper struct {
-	DaemonPath         string `validate:"nonzero"`
-	UpgradePath        string `validate:"nonzero"`
-	User               string `validate:"nonzero"`
-	Password           string
-	PreseededDatabases []PreseededDatabase
+	DaemonPath         string              `yaml:"DaemonPath" validate:"nonzero"`
+	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
+	User               string              `yaml:"User" validate:"nonzero"`
+	Password           string              `yaml:"Password"`
+	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
+	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
+	Socket             string              `yaml:"Socket"`
 }
 
 type StartManager struct {
-	StateFileLocation    string   `validate:"nonzero"`
-	MaxDatabaseSeedTries int      `validate:"nonzero"`
-	ClusterIps           []string `validate:"nonzero"`
-	MyIP                 string   `validate:"nonzero"`
+	StateFileLocation    string `yaml:"StateFileLocation" validate:"nonzero"`
+	GrastateFileLocation string
+	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
+	BootstrapNode        bool     `yaml:"BootstrapNode"`
+	ClusterProbeTimeout  int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
 }
 
 type Upgrader struct {
-	PackageVersionFile      string `validate:"nonzero"`
-	LastUpgradedVersionFile string `validate:"nonzero"`
+	PackageVersionFile      string `yaml:"PackageVersionFile" validate:"nonzero"`
+	LastUpgradedVersionFile string `yaml:"LastUpgradedVersionFile" validate:"nonzero"`
 }
 
 type PreseededDatabase struct {
-	DBName   string `validate:"nonzero"`
-	User     string `validate:"nonzero"`
-	Password string
+	DBName   string `yaml:"DBName" validate:"nonzero"`
+	User     string `yaml:"User" validate:"nonzero"`
+	Password string `yaml:"Password"`
+}
+
+func NewConfig(osArgs []string) (*Config, error) {
+	var c Config
+
+	binaryName := osArgs[0]
+	configurationOptions := osArgs[1:]
+
+	serviceConfig := service_config.New()
+	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
+
+	cflager.AddFlags(flags)
+
+	serviceConfig.AddFlags(flags)
+	serviceConfig.AddDefaults(Config{
+		Db: DBHelper{
+			User: "root",
+		},
+		Manager: StartManager{
+			GrastateFileLocation: "/var/vcap/store/mysql/grastate.dat",
+		},
+	})
+	flags.Parse(configurationOptions)
+
+	err := serviceConfig.Read(&c)
+
+	c.Logger, _ = cflager.New(binaryName)
+
+	return &c, err
 }
 
 func (c Config) Validate() error {

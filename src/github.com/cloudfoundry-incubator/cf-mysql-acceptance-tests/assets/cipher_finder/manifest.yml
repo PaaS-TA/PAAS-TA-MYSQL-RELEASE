@@ -1,0 +1,4 @@
+---
+applications:
+- name: cipher_finder_test
+  path: build/libs/cipher_finder.jar

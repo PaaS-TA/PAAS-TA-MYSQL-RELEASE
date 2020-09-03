@@ -3,27 +3,27 @@ package domain_test
 import (
 	"net"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/domain/fakes"
+	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Backend", func() {
-	var backend domain.Backend
-	var bridges *fakes.FakeBridges
+	var backend *domain.Backend
+	var bridges *domainfakes.FakeBridges
 
 	BeforeEach(func() {
-		bridges = &fakes.FakeBridges{}
+		bridges = new(domainfakes.FakeBridges)
 
 		domain.BridgesProvider = func(lager.Logger) domain.Bridges {
 			return bridges
 		}
 
 		logger := lagertest.NewTestLogger("Backend test")
-		backend = domain.NewBackend("backend-0", "1.2.3.4", 3306, 9902, logger)
+		backend = domain.NewBackend("backend-0", "1.2.3.4", 3306, 9902, "status", logger)
 	})
 
 	AfterEach(func() {
@@ -33,7 +33,7 @@ var _ = Describe("Backend", func() {
 	Describe("HealthcheckUrl", func() {
 		It("has the correct protocol, backend host and health check port", func() {
 			healthcheckURL := backend.HealthcheckUrl()
-			Expect(healthcheckURL).To(Equal("http://1.2.3.4:9902"))
+			Expect(healthcheckURL).To(Equal("http://1.2.3.4:9902/status"))
 		})
 	})
 
@@ -45,16 +45,16 @@ var _ = Describe("Backend", func() {
 	})
 
 	Describe("Bridge", func() {
-		var backendConn *fakes.FakeConn
-		var clientConn *fakes.FakeConn
+		var backendConn *domainfakes.FakeConn
+		var clientConn *domainfakes.FakeConn
 
 		var dialErr error
 		var dialedProtocol, dialedAddress string
-		var bridge *fakes.FakeBridge
+		var bridge *domainfakes.FakeBridge
 		var connectReadyChan, disconnectChan chan interface{}
 
 		BeforeEach(func() {
-			bridge = &fakes.FakeBridge{}
+			bridge = new(domainfakes.FakeBridge)
 
 			connectReadyChan = make(chan interface{})
 			disconnectChan = make(chan interface{})
@@ -68,14 +68,8 @@ var _ = Describe("Backend", func() {
 
 			bridges.CreateReturns(bridge)
 
-			clientConn = &fakes.FakeConn{}
-			backendConn = &fakes.FakeConn{}
-
-			clientAddr := &fakes.FakeAddr{}
-			backendAddr := &fakes.FakeAddr{}
-
-			clientConn.RemoteAddrReturns(clientAddr)
-			backendConn.RemoteAddrReturns(backendAddr)
+			clientConn = new(domainfakes.FakeConn)
+			backendConn = new(domainfakes.FakeConn)
 
 			dialErr = nil
 			dialedAddress = ""
@@ -95,19 +89,25 @@ var _ = Describe("Backend", func() {
 			defer close(done)
 			defer close(disconnectChan)
 
-			err := backend.Bridge(clientConn)
-			Expect(err).NotTo(HaveOccurred())
+			go func() {
+				err := backend.Bridge(clientConn)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
-			Expect(dialedProtocol).To(Equal("tcp"))
-			Expect(dialedAddress).To(Equal("1.2.3.4:3306"))
-		})
+			<-connectReadyChan
+
+			Eventually(dialedProtocol).Should(Equal("tcp"))
+			Eventually(dialedAddress).Should(Equal("1.2.3.4:3306"))
+		}, 5)
 
 		It("asynchronously creates and connects to a bridge", func(done Done) {
 			defer close(done)
 			defer close(disconnectChan)
 
-			err := backend.Bridge(clientConn)
-			Expect(err).NotTo(HaveOccurred())
+			go func() {
+				err := backend.Bridge(clientConn)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			<-connectReadyChan
 
@@ -117,14 +117,16 @@ var _ = Describe("Backend", func() {
 			Expect(actualBackendConn).To(Equal(backendConn))
 
 			Expect(bridge.ConnectCallCount()).To(Equal(1))
-		})
+		}, 5)
 
 		Context("when the bridge is disconnected", func() {
 			It("removes the bridge", func(done Done) {
 				defer close(done)
 
-				err := backend.Bridge(clientConn)
-				Expect(err).NotTo(HaveOccurred())
+				go func() {
+					err := backend.Bridge(clientConn)
+					Expect(err).NotTo(HaveOccurred())
+				}()
 
 				<-connectReadyChan
 
@@ -134,7 +136,7 @@ var _ = Describe("Backend", func() {
 
 				Eventually(bridges.RemoveCallCount).Should(Equal(1))
 				Expect(bridges.RemoveArgsForCall(0)).To(Equal(bridge))
-			}, 2)
+			}, 5)
 		})
 	})
 })

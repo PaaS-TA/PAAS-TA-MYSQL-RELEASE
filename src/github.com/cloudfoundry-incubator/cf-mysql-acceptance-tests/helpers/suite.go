@@ -9,11 +9,11 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/services"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
 )
 
 var TestConfig MysqlIntegrationConfig
-var TestContext services.Context
+var TestContext *workflowhelpers.ReproducibleTestSuiteSetup
 
 func PrepareAndRunTests(packageName string, t *testing.T, withContext bool) {
 	var err error
@@ -27,14 +27,16 @@ func PrepareAndRunTests(packageName string, t *testing.T, withContext bool) {
 		panic("Validating config: " + err.Error())
 	}
 
-	TestContext = services.NewContext(TestConfig.Config, "MySQLATS")
-
 	if withContext {
-		BeforeEach(TestContext.Setup)
-		AfterEach(TestContext.Teardown)
-	}
+		BeforeEach(func() {
+			TestContext = workflowhelpers.NewTestSuiteSetup(TestConfig.CFConfig)
+			TestContext.Setup()
+		})
 
-	fmt.Printf("Plans: %#v\n", TestConfig.Plans)
+		AfterEach(func() {
+			TestContext.Teardown()
+		})
+	}
 
 	RegisterFailHandler(Fail)
 	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("junit_%d.xml", ginkgoconfig.GinkgoConfig.ParallelNode))

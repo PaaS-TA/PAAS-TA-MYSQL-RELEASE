@@ -2,12 +2,14 @@ package config_test
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"reflect"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf-experimental/service-config"
 
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 )
@@ -16,39 +18,25 @@ var _ = Describe("Config", func() {
 
 	Describe("Validate", func() {
 		var rootConfig config.Config
+		var serviceConfig *service_config.ServiceConfig
 
 		BeforeEach(func() {
-			rootConfig = config.Config{
-				LogFileLocation: "testPath",
-				PidFile:         "testPidFile",
-				Upgrader: config.Upgrader{
-					PackageVersionFile:      "testPackageVersionFile",
-					LastUpgradedVersionFile: "testLastUpgradedVersionFile",
-				},
-				Manager: config.StartManager{
-					StateFileLocation: "testStateFileLocation",
-					MyIP:              "1.1.1.1",
-					ClusterIps: []string{
-						"1.1.1.1",
-						"1.1.1.2",
-						"1.1.1.3",
-					},
-					MaxDatabaseSeedTries: 1,
-				},
+			serviceConfig = service_config.New()
+			flags := flag.NewFlagSet("mariadb_ctrl", flag.ExitOnError)
+			serviceConfig.AddFlags(flags)
+
+			serviceConfig.AddDefaults(config.Config{
 				Db: config.DBHelper{
-					DaemonPath:  "testDaemonPath",
-					UpgradePath: "testUpgradePath",
-					User:        "testUser",
-					Password:    "",
-					PreseededDatabases: []config.PreseededDatabase{
-						config.PreseededDatabase{
-							DBName:   "testDbName1",
-							User:     "testUser1",
-							Password: "",
-						},
-					},
+					User: "root",
 				},
-			}
+			})
+
+			flags.Parse([]string{
+				"-configPath=../example-config.yml",
+			})
+
+			err := serviceConfig.Read(&rootConfig)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		var setNestedFieldToEmpty func(obj interface{}, nestedFieldNames []string) error
@@ -117,6 +105,7 @@ var _ = Describe("Config", func() {
 		Describe("Config", func() {
 			It("returns an error if LogFileLocation is blank", isRequiredField("LogFileLocation"))
 			It("returns an error if PidFile is blank", isRequiredField("PidFile"))
+			It("returns an error if ChildPidFile is blank", isRequiredField("ChildPidFile"))
 		})
 
 		Describe("Upgrader", func() {
@@ -126,9 +115,8 @@ var _ = Describe("Config", func() {
 
 		Describe("StartManager", func() {
 			It("returns an error if Manager.StateFileLocation is blank", isRequiredField("Manager.StateFileLocation"))
-			It("returns an error if Manager.MaxDatabaseSeedTries is blank", isRequiredField("Manager.MaxDatabaseSeedTries"))
-			It("returns an error if Manager.MyIP is blank", isRequiredField("Manager.MyIP"))
 			It("returns an error if Manager.ClusterIps is blank", isRequiredField("Manager.ClusterIps"))
+			It("returns an error if Manager.ClusterProbeTimeout is blank", isRequiredField("Manager.ClusterProbeTimeout"))
 		})
 
 		Describe("DBHelper", func() {

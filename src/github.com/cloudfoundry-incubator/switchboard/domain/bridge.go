@@ -5,9 +5,10 @@ import (
 	"io"
 	"net"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
+//go:generate counterfeiter . Bridge
 type Bridge interface {
 	Connect()
 	Close()
@@ -29,9 +30,9 @@ func NewBridge(client, backend net.Conn, logger lager.Logger) Bridge {
 }
 
 func (b bridge) Connect() {
-	b.logger.Info(fmt.Sprintf("Session established %s", b))
+	b.logger.Debug(fmt.Sprintf("Session established %s", b))
 
-	defer b.logger.Info(fmt.Sprintf("Session closed %s", b)) // defers are LIFO
+	defer b.logger.Debug(fmt.Sprintf("Session closed %s", b)) // defers are LIFO
 	defer b.client.Close()
 	defer b.backend.Close()
 

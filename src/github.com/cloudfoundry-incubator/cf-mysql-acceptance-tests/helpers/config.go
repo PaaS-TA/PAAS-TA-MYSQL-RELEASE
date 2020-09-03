@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/services"
+	"encoding/json"
+	"io/ioutil"
+
+	"github.com/cloudfoundry-incubator/cf-test-helpers/config"
 )
 
 type Component struct {
@@ -13,53 +16,113 @@ type Component struct {
 }
 
 type Plan struct {
-	Name               string `json:"plan_name"`
+	Name               string `json:"name"`
 	MaxStorageMb       int    `json:"max_storage_mb"`
 	MaxUserConnections int    `json:"max_user_connections"`
+	Private            bool   `json:"private,omitempty"`
 }
 
 type Proxy struct {
-	ExternalHost      string `json:"external_host"`
-	APIUsername       string `json:"api_username"`
-	APIPassword       string `json:"api_password"`
-	SkipSSLValidation bool   `json:"skip_ssl_validation"`
-	ForceHTTPS        bool   `json:"api_force_https"`
+	DashboardUrls     []string `json:"dashboard_urls"`
+	APIUsername       string   `json:"api_username"`
+	APIPassword       string   `json:"api_password"`
+	SkipSSLValidation bool     `json:"skip_ssl_validation"`
+	APIForceHTTPS     bool     `json:"api_force_https"`
+}
+
+type Standalone struct {
+	Host          string `json:"host"`
+	MySQLUsername string `json:"username"`
+	MySQLPassword string `json:"password"`
+	Port          int    `json:"port"`
+}
+
+type Tuning struct {
+	ExpectationFilePath string `json:"expectation_file_path"`
 }
 
 type MysqlIntegrationConfig struct {
-	services.Config
-	BrokerHost  string      `json:"broker_host"`
-	ServiceName string      `json:"service_name"`
-	Plans       []Plan      `json:"plans"`
-	Brokers     []Component `json:"brokers"`
-	MysqlNodes  []Component `json:"mysql_nodes"`
-	Proxy       Proxy       `json:"proxy"`
+	CFConfig       *config.Config
+	BOSH           BOSH        `json:"bosh"`
+	BrokerHost     string      `json:"broker_host,omitempty"`
+	BrokerProtocol string      `json:"broker_protocol,omitempty"`
+	ServiceName    string      `json:"service_name"`
+	EnableTlsTests bool        `json:"enable_tls_tests"`
+	Plans          []Plan      `json:"plans"`
+	Brokers        []Component `json:"brokers,omitempty"`
+	MysqlNodes     []Component `json:"mysql_nodes,omitempty"`
+	Proxy          Proxy       `json:"proxy"`
+	Standalone     Standalone  `json:"standalone,omitempty"`
+	StandaloneOnly bool        `json:"standalone_only,omitempty"`
+	Tuning         Tuning      `json:"tuning,omitempty"`
+}
+
+type BOSH struct {
+	CACert       string `json:"ca_cert"`
+	Client       string `json:"client"`
+	ClientSecret string `json:"client_secret"`
+	URL          string `json:"url"`
 }
 
 func (c MysqlIntegrationConfig) AppURI(appname string) string {
-	return "http://" + appname + "." + c.AppsDomain
+	return "https://" + appname + "." + c.CFConfig.AppsDomain
 }
 
 func LoadConfig() (MysqlIntegrationConfig, error) {
-	config := MysqlIntegrationConfig{}
+	mysqlIntegrationConfig := MysqlIntegrationConfig{}
 
 	path := os.Getenv("CONFIG")
 	if path == "" {
-		return config, fmt.Errorf("Must set $CONFIG to point to an integration config .json file.")
+		return mysqlIntegrationConfig, fmt.Errorf("Must set $CONFIG to point to an integration config .json file.")
 	}
 
-	err := services.LoadConfig(path, &config)
+	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		return config, fmt.Errorf("Loading config: %s", err.Error())
+		panic(err)
 	}
 
-	return config, nil
+	if err := json.Unmarshal(buf, &mysqlIntegrationConfig); err != nil {
+		panic(err)
+	}
+
+	cfConfig := &config.Config{
+		NamePrefix: "MySQLATS",
+	}
+	if !mysqlIntegrationConfig.StandaloneOnly {
+		err = config.Load(path, cfConfig)
+		if err != nil {
+			return mysqlIntegrationConfig, fmt.Errorf("Loading config: %s", err.Error())
+		}
+		mysqlIntegrationConfig.CFConfig = cfConfig
+	}
+
+
+	if mysqlIntegrationConfig.BrokerProtocol == "" {
+		mysqlIntegrationConfig.BrokerProtocol = "https"
+	}
+
+	return mysqlIntegrationConfig, nil
 }
 
 func ValidateConfig(config *MysqlIntegrationConfig) error {
-	err := services.ValidateConfig(&config.Config)
-	if err != nil {
-		return err
+	if config.StandaloneOnly {
+		if config.Standalone.Host == "" {
+			return fmt.Errorf("Field 'standalone.host' must not be empty")
+		}
+
+		if config.Standalone.Port == 0 {
+			return fmt.Errorf("Field 'standalone.port' must not be empty")
+		}
+
+		if config.Standalone.MySQLUsername == "" {
+			return fmt.Errorf("Field 'standalone.username' must not be empty")
+		}
+
+		if config.Standalone.MySQLPassword == "" {
+			return fmt.Errorf("Field 'standalone.password' must not be empty")
+		}
+
+		return nil
 	}
 
 	if config.ServiceName == "" {
@@ -92,13 +155,14 @@ func ValidateConfig(config *MysqlIntegrationConfig) error {
 		return fmt.Errorf("Field 'broker_host' must not be empty")
 	}
 
-	emptyProxy := Proxy{}
-	if config.Proxy == emptyProxy {
-		return fmt.Errorf("Field 'proxy' must not be empty")
+	if len(config.Proxy.DashboardUrls) == 0 {
+		return fmt.Errorf("Field 'proxy.dashboardUrls' must not be empty")
 	}
 
-	if config.Proxy.ExternalHost == "" {
-		return fmt.Errorf("Field 'proxy.external_host' must not be empty")
+	for index, url := range config.Proxy.DashboardUrls {
+		if url == "" {
+			return fmt.Errorf("Field 'proxy.dashboard_urls[%d]' must not be empty", index)
+		}
 	}
 
 	if config.Proxy.APIUsername == "" {

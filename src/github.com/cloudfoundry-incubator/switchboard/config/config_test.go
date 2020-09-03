@@ -1,170 +1,141 @@
 package config_test
 
 import (
+	"fmt"
+	"time"
+
 	. "github.com/cloudfoundry-incubator/switchboard/config"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 )
 
 var _ = Describe("Config", func() {
+	Describe("Proxy methods", func() {
+		Describe("HealthcheckTimeout", func() {
+			It("returns timeout in millis", func() {
+				Expect(Proxy{HealthcheckTimeoutMillis: 10}.HealthcheckTimeout()).To(Equal(10 * time.Millisecond))
+			})
+		})
+
+		Describe("ShutdownDelay", func() {
+			It("returns delay in seconds", func() {
+				Expect(Proxy{ShutdownDelaySeconds: 10}.ShutdownDelay()).To(Equal(10 * time.Second))
+			})
+		})
+	})
+
 	Describe("Validate", func() {
-		It("returns an error if the config file does not contain a proxy", func() {
-            config := Config{
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                ProfilerPort: 0,
-                HealthPort: 0,
-            }
+		var (
+			rootConfig    *Config
+			rawConfigFile string
+		)
 
-			err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Proxy"))
+		JustBeforeEach(func() {
+			osArgs := []string{
+				"switchboard",
+				fmt.Sprintf("-configPath=%s", rawConfigFile),
+			}
+
+			var err error
+			rootConfig, err = NewConfig(osArgs)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if the config file does not contain an api", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                },
-                ProfilerPort: 0,
-                HealthPort: 0,
-            }
-
-            err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("API"))
+		BeforeEach(func() {
+			rawConfigFile = "fixtures/validConfig.yml"
 		})
 
-		It("returns an error if one of the proxy fields is empty", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                    Backends: []Backend{
-                        {
-                            Host: "",
-                            Port: 0,
-                            HealthcheckPort: 0,
-                            Name: "",
-                        },
-                    },
-                },
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                ProfilerPort: 0,
-                HealthPort: 0,
-            }
-
-            err := config.Validate()
-			Expect(err.Error()).To(ContainSubstring("Proxy.Port"))
-			Expect(err.Error()).To(ContainSubstring("Proxy.Backends"))
-			Expect(err.Error()).To(ContainSubstring("Proxy.HealthcheckTimeoutMillis"))
+		It("does not return error on valid config", func() {
+			err := rootConfig.Validate()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if one of the Backends fields is empty", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                    Backends: []Backend{
-                        {
-                            Host: "",
-                            Port: 0,
-                            HealthcheckPort: 0,
-                            Name: "",
-                        },
-                    },
-                },
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                ProfilerPort: 0,
-                HealthPort: 0,
-            }
-
-            err := config.Validate()
-			Expect(err.Error()).To(ContainSubstring("Proxy.Backends[0].Host"))
-			Expect(err.Error()).To(ContainSubstring("Proxy.Backends[0].Port"))
-			Expect(err.Error()).To(ContainSubstring("Proxy.Backends[0].HealthcheckPort"))
-			Expect(err.Error()).To(ContainSubstring("Proxy.Backends[0].Name"))
+		It("returns an error if API.Port is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "API.Port")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if one of the API fields is empty", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                    Backends: []Backend{
-                        {
-                            Host: "",
-                            Port: 0,
-                            HealthcheckPort: 0,
-                            Name: "",
-                        },
-                    },
-                },
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                ProfilerPort: 0,
-                HealthPort: 0,
-            }
-
-            err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("API.Port"))
-			Expect(err.Error()).To(ContainSubstring("API.Username"))
-			Expect(err.Error()).To(ContainSubstring("API.Password"))
+		It("returns an error if API.Username is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "API.Username")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if the config file does not contain a profile port", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                },
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                HealthPort: 0,
-            }
-
-            err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("ProfilerPort"))
+		It("returns an error if API.Password is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "API.Password")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if the config file does not contain a health port", func() {
-            config := Config{
-                Proxy: Proxy{
-                    Port: 0,
-                    HealthcheckTimeoutMillis: 0,
-                },
-                API: API{
-                    Port: 0,
-                    Username: "",
-                    Password: "",
-                },
-                ProfilerPort: 0,
-            }
+		It("does not return an error if API.ForceHttps is blank", func() {
+			err := test_helpers.IsOptionalField(rootConfig, "API.ForceHttps")
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-            err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("HealthPort"))
+		It("does not return an error if ConsulCluster is blank", func() {
+			err := test_helpers.IsOptionalField(rootConfig, "ConsulCluster")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("does not return an error if ConsulServiceName is blank", func() {
+			err := test_helpers.IsOptionalField(rootConfig, "ConsulServiceName")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Port is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Port")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.HealthcheckTimeoutMillis is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.HealthcheckTimeoutMillis")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends.Host is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Host")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends.Port is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Port")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends.StatusPort is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.StatusPort")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends.StatusEndpoint is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.StatusEndpoint")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Proxy.Backends.Name is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Name")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if HealthPort is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "HealthPort")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if StaticDir is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "StaticDir")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if PidFile is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "PidFile")
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

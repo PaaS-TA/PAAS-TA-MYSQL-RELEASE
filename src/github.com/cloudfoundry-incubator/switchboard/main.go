@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,36 +8,31 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/cloudfoundry-incubator/cf-lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/consuladapter"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/locket"
+
 	"github.com/cloudfoundry-incubator/switchboard/api"
+	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/health"
-	"github.com/cloudfoundry-incubator/switchboard/proxy"
+	apirunner "github.com/cloudfoundry-incubator/switchboard/runner/api"
+	apiaggregatorrunner "github.com/cloudfoundry-incubator/switchboard/runner/apiaggregator"
+	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
+	"github.com/cloudfoundry-incubator/switchboard/runner/health"
+	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-
-	"github.com/pivotal-cf-experimental/service-config"
-	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/ifrit/sigmon"
+	"net"
 )
 
 func main() {
-	serviceConfig := service_config.New()
+	rootConfig, err := config.NewConfig(os.Args)
 
-	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	pidFile := flags.String("pidFile", "", "Path to pid file")
-	staticDir := flags.String("staticDir", "", "Path to directory containing static UI")
-	serviceConfig.AddFlags(flags)
-	cf_lager.AddFlags(flags)
-	flags.Parse(os.Args[1:])
-
-	logger, _ := cf_lager.New("Switchboard")
-
-	var rootConfig config.Config
-	err := serviceConfig.Read(&rootConfig)
-	if err != nil {
-		logger.Fatal("Error reading config:", err)
-	}
+	logger := rootConfig.Logger
 
 	err = rootConfig.Validate()
 	if err != nil {
@@ -46,62 +40,121 @@ func main() {
 	}
 
 	go func() {
-		logger.Info(fmt.Sprintf("Starting profiling server on port %d", rootConfig.ProfilerPort))
-		err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", rootConfig.ProfilerPort), nil)
+		if !rootConfig.Profiling.Enabled {
+			logger.Info("Profiling disabled")
+			return
+		}
+
+		logger.Info("Starting profiling server", lager.Data{
+			"port": rootConfig.Profiling.Port,
+		})
+		err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", rootConfig.Profiling.Port), nil)
 		if err != nil {
 			logger.Error("profiler failed with error", err)
 		}
 	}()
 
-	err = ioutil.WriteFile(*pidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
-	if err == nil {
-		logger.Info(fmt.Sprintf("Wrote pidFile to %s", *pidFile))
-	} else {
-		logger.Fatal("Cannot write pid to file", err, lager.Data{"pidFile": *pidFile})
-	}
-
-	if *staticDir == "" {
-		logger.Fatal("staticDir flag not provided", nil)
-	}
-
-	if _, err := os.Stat(*staticDir); os.IsNotExist(err) {
-		logger.Fatal(fmt.Sprintf("staticDir: %s does not exist", *staticDir), nil)
+	if _, err := os.Stat(rootConfig.StaticDir); os.IsNotExist(err) {
+		logger.Fatal(fmt.Sprintf("staticDir: %s does not exist", rootConfig.StaticDir), nil)
 	}
 
 	backends := domain.NewBackends(rootConfig.Proxy.Backends, logger)
-	cluster := domain.NewCluster(
+	arpEntryRemover := monitor.NewARPFlusher(new(monitor.ExecCmdRunner))
+
+	bridgeActiveBackendChan := make(chan *domain.Backend)
+	clusterAPIActiveBackendChan := make(chan *domain.Backend)
+	activeBackendSubscribers := []chan<- *domain.Backend{
+		bridgeActiveBackendChan,
+		clusterAPIActiveBackendChan,
+	}
+
+	cluster := monitor.NewCluster(
 		backends,
 		rootConfig.Proxy.HealthcheckTimeout(),
 		logger,
+		arpEntryRemover,
+		activeBackendSubscribers,
+		net.LookupIP,
 	)
 
-	handler := api.NewHandler(backends, logger, rootConfig.API, *staticDir)
+	trafficEnabledChan := make(chan bool)
+
+	clusterAPI := api.NewClusterAPI(trafficEnabledChan, clusterAPIActiveBackendChan, logger)
+	go clusterAPI.ListenForActiveBackend()
+
+	handler := api.NewHandler(clusterAPI, backends, logger, rootConfig.API, rootConfig.StaticDir)
+	aggregatorHandler := apiaggregator.NewHandler(logger, rootConfig.API)
 
 	members := grouper.Members{
 		{
-			Name:   "proxy",
-			Runner: proxy.NewRunner(cluster, rootConfig.Proxy.Port, logger),
+			Name:   "bridge",
+			Runner: bridge.NewRunner(bridgeActiveBackendChan, trafficEnabledChan, rootConfig.Proxy.Port, rootConfig.Proxy.ShutdownDelay(), logger),
+		},
+		{
+			Name:   "api-aggregator",
+			Runner: apiaggregatorrunner.NewRunner(rootConfig.API.AggregatorPort, aggregatorHandler),
 		},
 		{
 			Name:   "api",
-			Runner: api.NewRunner(rootConfig.API.Port, handler, logger),
+			Runner: apirunner.NewRunner(rootConfig.API.Port, handler),
+		},
+		{
+			Name:   "monitor",
+			Runner: monitor.NewRunner(cluster, logger),
 		},
 	}
 
 	if rootConfig.HealthPort != rootConfig.API.Port {
 		members = append(members, grouper.Member{
 			Name:   "health",
-			Runner: health.NewRunner(rootConfig.HealthPort, logger),
+			Runner: health.NewRunner(rootConfig.HealthPort),
 		})
 	}
 
-	group := grouper.NewParallel(os.Kill, members)
-	process := ifrit.Invoke(group)
+	if rootConfig.ConsulCluster != "" {
+		writePid(logger, rootConfig.PidFile)
+
+		if rootConfig.ConsulServiceName == "" {
+			rootConfig.ConsulServiceName = "mysql"
+		}
+
+		clock := clock.NewClock()
+		consulClient, err := consuladapter.NewClientFromUrl(rootConfig.ConsulCluster)
+		if err != nil {
+			logger.Fatal("new-consul-client-failed", err)
+		}
+
+		registrationRunner := locket.NewRegistrationRunner(logger,
+			&consulapi.AgentServiceRegistration{
+				Name:  rootConfig.ConsulServiceName,
+				Port:  int(rootConfig.Proxy.Port),
+				Check: &consulapi.AgentServiceCheck{TTL: "3s"},
+			},
+			consulClient, locket.RetryInterval, clock)
+
+		members = append(members, grouper.Member{"registration", registrationRunner})
+	}
+
+	group := grouper.NewOrdered(os.Interrupt, members)
+	process := ifrit.Invoke(sigmon.New(group))
 
 	logger.Info("Proxy started", lager.Data{"proxyConfig": rootConfig.Proxy})
 
+	if rootConfig.ConsulCluster == "" {
+		writePid(logger, rootConfig.PidFile)
+	}
+
 	err = <-process.Wait()
 	if err != nil {
-		logger.Fatal("Error starting switchboard", err, lager.Data{"proxyConfig": rootConfig.Proxy})
+		logger.Fatal("Switchboard exited unexpectedly", err, lager.Data{"proxyConfig": rootConfig.Proxy})
+	}
+}
+
+func writePid(logger lager.Logger, pidFile string) {
+	err := ioutil.WriteFile(pidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+	if err == nil {
+		logger.Info(fmt.Sprintf("Wrote pidFile to %s", pidFile))
+	} else {
+		logger.Fatal("Cannot write pid to file", err, lager.Data{"pidFile": pidFile})
 	}
 }

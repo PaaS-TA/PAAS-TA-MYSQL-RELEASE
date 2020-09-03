@@ -1,16 +1,18 @@
-#!/bin/bash
-
-result=0
+#!/bin/bash -e
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$( cd $MY_DIR/.. && pwd )"
 
-echo -e "\nVetting packages for potential issues..."
-$MY_DIR/govet
-let "result+=$?"
+pushd "${PROJECT_DIR}"
+  echo -e "\nFormatting packages..."
+  go fmt $(go list ./... | grep -v /vendor/)
 
-echo -e "\nTesting packages..."
-ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage="integration_test" "$@" $MY_DIR/..
-let "result+=$?"
+  echo -e "\nGenerating fakes..."
+  go generate $(go list ./... | grep -v /vendor/)
 
-echo -e "\nExit Code: $result"
-exit $result
+  echo -e "\nVetting packages for potential issues..."
+  go vet -x $(go list ./... | grep -v /vendor/)
+
+  echo -e "\nTesting packages..."
+  ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage="integration_test" "$@" .
+popd

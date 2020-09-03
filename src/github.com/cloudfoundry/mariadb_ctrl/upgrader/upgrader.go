@@ -5,12 +5,13 @@ import (
 	"regexp"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter . Upgrader
 type Upgrader interface {
 	Upgrade() error
 	NeedsUpgrade() (bool, error)
@@ -43,13 +44,7 @@ func NewUpgrader(
 }
 
 func (u upgrader) Upgrade() (err error) {
-	err = u.startStandaloneDatabaseSynchronously()
-	if err != nil {
-		u.logger.Info(
-			"Synchronously starting standalone database failed.",
-			lager.Data{"err": err},
-		)
-	}
+	u.startStandaloneDatabaseSynchronously()
 
 	u.logger.Info("Performing upgrade")
 	output, upgrade_err := u.mariadbHelper.Upgrade()
@@ -81,53 +76,27 @@ func (u upgrader) Upgrade() (err error) {
 		return
 	}
 
-	err = u.stopStandaloneDatabaseSynchronously()
-	if err != nil {
-		u.logger.Info(
-			"Synchronously stopping standalone database failed.",
-			lager.Data{"err": err},
-		)
-	}
+	u.stopStandaloneDatabaseSynchronously()
+
 	return
 }
 
-func (u upgrader) startStandaloneDatabaseSynchronously() (err error) {
-	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
-	if err != nil {
-		u.logger.Info(
-			"Failed to start mysql in stand-alone mode",
-			lager.Data{"err": err},
-		)
-		return
-	}
+func (u upgrader) startStandaloneDatabaseSynchronously() {
+	u.mariadbHelper.StartMysqldInStandAlone()
 
 	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
 		if u.mariadbHelper.IsDatabaseReachable() {
-			return nil
+			return
 		}
 
 		u.osHelper.Sleep(DBReachablePollingDelay)
 	}
 
-	return errors.New("Database is not reachable after 30 tries.")
+	u.logger.Fatal("Database is not reachable after 30 tries.", errors.New("Database is not reachable after 30 tries."))
 }
 
-func (u upgrader) stopStandaloneDatabaseSynchronously() (err error) {
-	err = u.mariadbHelper.StopStandaloneMysql()
-	if err != nil {
-		u.logger.Info("Failed to stop standalone MySQL", lager.Data{"err": err})
-		return
-	}
-
-	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
-		if !u.mariadbHelper.IsDatabaseReachable() {
-			return nil
-		}
-
-		u.osHelper.Sleep(DBReachablePollingDelay)
-	}
-
-	return errors.New("Database is still reachable after 30 tries.")
+func (u upgrader) stopStandaloneDatabaseSynchronously() {
+	u.mariadbHelper.StopMysqld()
 }
 
 func (u upgrader) NeedsUpgrade() (bool, error) {

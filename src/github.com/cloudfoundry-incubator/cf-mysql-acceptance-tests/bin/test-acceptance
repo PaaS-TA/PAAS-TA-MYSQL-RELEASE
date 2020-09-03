@@ -8,4 +8,7 @@ go install -v github.com/onsi/ginkgo/ginkgo
 
 source $MY_DIR/test-options.sh
 
-ginkgo $GINKGO_OPTS -skipPackage="failover,dashboard" "$@"
+ginkgo $GINKGO_OPTS \
+  "$@" \
+  -r -skipPackage="failover,standalone,tuning" \
+  "${TEST_DIR}"
