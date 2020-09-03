@@ -1,7 +1,7 @@
 ---
 name: op-mysql-java-broker
 
-dependencies:
+dependencies: []
 
-files:
+files: 
 - op-mysql-java-broker/**/*

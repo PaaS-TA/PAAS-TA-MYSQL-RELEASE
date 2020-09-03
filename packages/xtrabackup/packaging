@@ -2,7 +2,9 @@
 set -e
 set -x
 
-XTRABACKUP_VERSION=2.2.10
+NPROC="$(nproc)"
+
+XTRABACKUP_VERSION=2.4.8
 PREFIX=${BOSH_INSTALL_TARGET}
 
 export PATH=$PATH:${BOSH_INSTALL_TARGET}/bin:/var/vcap/packages/mariadb/bin
@@ -10,33 +12,13 @@ export PATH=$PATH:${BOSH_INSTALL_TARGET}/bin:/var/vcap/packages/mariadb/bin
 # Install Xtrabackup runtime dependencies
 
 # socat
-tar xzf xtrabackup/socat-1.7.2.4.tar.gz
+tar xzf xtrabackup/socat-1.7.3.2.tar.gz
 (
   set -e
-  cd socat-1.7.2.4
+  cd socat-1.7.3.2
   ./configure --prefix=$PREFIX
-  make
-  make install prefix=$PREFIX
-)
-
-# DBI-perl
-tar xzf xtrabackup/libdbi-perl_1.630.orig.tar.gz
-(
-  set -e
-  cd DBI-1.630
-  perl Makefile.PL PREFIX=$PREFIX
-  make
-  make install prefix=$PREFIX
-)
-
-# DBD-mysql-perl
-tar xzf xtrabackup/libdbd-mysql-perl_4.025.orig.tar.gz
-(
-  set -e
-  cd DBD-mysql-4.025
-  perl -I${BOSH_INSTALL_TARGET}/lib/perl/5.18.2/ Makefile.PL PREFIX=$PREFIX
-  make
-  make install prefix=$PREFIX
+  make -j "${NPROC}"
+  make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # Install Xtrabackup compilation dependencies
@@ -47,8 +29,8 @@ tar xzf xtrabackup/autoconf-2.65.tar.gz
   set -e
   cd autoconf-2.65
   autoconf_dir=$PREFIX/share/autoconf ./configure --prefix=$PREFIX
-  make
-  make install prefix=$PREFIX
+  make -j "${NPROC}"
+  make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # automake
@@ -57,8 +39,8 @@ tar xzf xtrabackup/automake-1.14.1.tar.gz
   set -e
   cd automake-1.14.1
   ./configure --prefix=$PREFIX
-  make
-  make install prefix=$PREFIX
+  make -j "${NPROC}"
+  make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # libtool
@@ -67,8 +49,8 @@ tar xzf xtrabackup/libtool-2.4.2.tar.gz
   set -e
   cd libtool-2.4.2
   ./configure --prefix=$PREFIX
-  make
-  make install prefix=$PREFIX
+  make -j "${NPROC}"
+  make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # libaio
@@ -76,20 +58,36 @@ tar xzf xtrabackup/libaio_0.3.110.orig.tar.gz
 (
   set -e
   cd libaio-0.3.110
-  make install
-
+  make -j "${NPROC}" install
 )
 
-tar xzf xtrabackup/percona-xtrabackup-percona-xtrabackup-${XTRABACKUP_VERSION}.tar.gz
+# boost
+
+cp -R /var/vcap/packages/boost/lib/* /usr/lib/
+cp -R /var/vcap/packages/boost/include/* /usr/include/
+
+tar xzf xtrabackup/libev-4.22.tar.gz
 (
   set -e
-  cd percona-xtrabackup-percona-xtrabackup-${XTRABACKUP_VERSION}
+
+  cd libev-4.22
+
+  ./configure --prefix=/usr --disable-static &&
+  make -j "${NPROC}"
+  make -j "${NPROC}" check
+  make -j "${NPROC}" install
+)
+
+tar xzf xtrabackup/percona-xtrabackup-${XTRABACKUP_VERSION}.tar.gz
+(
+  set -e
+  cd percona-xtrabackup-${XTRABACKUP_VERSION}
 
   cmake \
       -DBUILD_CONFIG=xtrabackup_release \
       -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
       -DWITH_MAN_PAGES=OFF
-  make -j4
-  make install
+  make -j "${NPROC}"
+  make -j "${NPROC}" install
 )
 

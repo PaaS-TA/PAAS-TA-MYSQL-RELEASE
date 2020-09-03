@@ -1,12 +1,12 @@
 # abort script on any command that exits with a non zero value
 set -e
 
-GALERA_VERSION=25.3.9
+GALERA_VERSION=25.3.23
 
 export HOME=/var/vcap/data
 cd galera
-tar xfz galera-${GALERA_VERSION}-src.tar.gz
-cd galera-release_${GALERA_VERSION}
+tar xfz galera-${GALERA_VERSION}.tar.gz
+cd galera-${GALERA_VERSION}
 
 #
 # Scons build system cannot be easily configured to use
@@ -24,7 +24,7 @@ PATH=$PATH:/var/vcap/packages/python/bin
 # Go Agent cannot handle more than 10MB output, so trim it
 #
 set +e
-/var/vcap/packages/scons/bin/scons > build.out 2> build.err
+/var/vcap/packages/scons/bin/scons tests=0 > build.out 2> build.err
 BUILD_EXIT_CODE=$?
 set -e
 
