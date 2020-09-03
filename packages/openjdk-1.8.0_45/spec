@@ -1,7 +1,0 @@
----
-name: openjdk-1.8.0_45
-
-dependencies:
-
-files:
-- openjdk/openjdk-1.8.0_45.tar.gz

@@ -1,9 +1,0 @@
-# abort script on any command that exits with a non zero value
-set -e
-
-OPENJDK_VERSION=1.8.0_45
-
-tar xzf openjdk/openjdk-${OPENJDK_VERSION}.tar.gz
-(
-  mv * ${BOSH_INSTALL_TARGET}
-)
