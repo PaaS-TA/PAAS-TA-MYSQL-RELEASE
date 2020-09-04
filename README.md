@@ -121,10 +121,3 @@
     ```   
 ### Deployment   
 - https://github.com/PaaS-TA/service-deployment   
-
-
-
-##1. Mysql Configuration
-- paasta-mysql-broker	 :: 1 machine
-- proxy :: 1 machine
-- mysql_z1 :: 1 machine
