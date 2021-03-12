@@ -17,13 +17,13 @@
 ### Create PaaS-TA Mysql Release   
   - Download the latest PaaS-TA Mysql Release    
     ```   
-    $ git clone https://github.com/PaaS-TA/PAAS-TA-MYSQL-RELEASE.git   
+    $ git clone https://github.com/PaaS-TA/PAAS-TA-MYSQL-RELEASE.git -b CCE   
     $ cd PAAS-TA-MYSQL-RELEASE   
     ```   
   - Download & Copy "source files" into the src directory   
     ```   
     ## download source files   
-    $ wget -O src.zip http://45.248.73.44/index.php/s/LbZXfZJdfCtepiM/download   
+    $ wget -O src.zip http://45.248.73.44/index.php/s/Mi9tSEgD35yELGE/download
 
     ## unzip download source files   
     $ unzip src.zip   
@@ -72,11 +72,11 @@
       │   ├── gra_log_purger_test.go
       │   └── vendor
       ├── mariadb
-      │   └── mariadb-10.1.38.tar.gz
+      │   └── mariadb-10.1.48.tar.gz
       ├── mariadb-patch
       │   └── add_sst_interrupt.patch
       ├── mysqlclient
-      │   └── mariadb-connector-c-2.1.0-src.tar.gz
+      │   └── mariadb-connector-c-3.1.12-src.tar.gz
       ├── op-mysql-java-broker
       │   └── openpaas-service-java-broker-mysql.jar
       ├── openjdk
@@ -115,7 +115,7 @@
     ```   
   - Create PaaS-TA Mysql Release   
     ```   
-    ## <VERSION> :: release version (e.g. 2.0.1)   
+    ## <VERSION> :: release version (e.g. 2.1.0)   
     ## <RELEASE_TARBALL_PATH> :: release file path (e.g. /home/ubuntu/workspace/paasta-mysql-<VERSION>.tgz)   
     $ bosh -e <bosh_name> create-release --name=paasta-mysql --version=<VERSION> --tarball=<RELEASE_TARBALL_PATH> --force   
     ```   

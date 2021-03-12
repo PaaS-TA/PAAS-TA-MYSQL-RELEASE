@@ -31,7 +31,20 @@ GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
   <% end %>
 <% end %>
 
-UPDATE mysql.user SET Password=PASSWORD('<%= p('cf_mysql.mysql.admin_password') %>') WHERE User='<%= p('cf_mysql.mysql.admin_username') %>';
+
+-- CCE start
+INSTALL SONAME 'auth_ed25519';
+
+UPDATE mysql.user SET password = '', plugin = 'mysql_native_password', authentication_string = password('<%= p('cf_mysql.mysql.admin_password') %>') where user = '<%= p('cf_mysql.mysql.admin_username') %>';
+
+GRANT USAGE ON mysql.* TO 'cluster-health-logger'@'127.0.0.1' IDENTIFIED BY '<%= p('cf_mysql.mysql.cluster_health.password') %>';
+UPDATE mysql.user SET password = '', plugin = 'mysql_native_password', authentication_string = password('<%= p('cf_mysql.mysql.cluster_health.password') %>') where user = 'cluster-health-logger' and host = '127.0.0.1';
+
+GRANT USAGE ON mysql.* TO 'galera-healthcheck'@'127.0.0.1' IDENTIFIED BY '<%= p('cf_mysql.mysql.galera_healthcheck.db_password') %>';
+UPDATE mysql.user SET password = '', plugin = 'mysql_native_password', authentication_string = password('<%= p('cf_mysql.mysql.galera_healthcheck.db_password') %>') where user = 'galera-healthcheck' and host = '127.0.0.1';
+-- CCE end
+
+
 DELETE FROM mysql.user WHERE User='<%= p('cf_mysql.mysql.admin_username') %>' AND Host NOT IN (<%= quoted_hosts_string %>);
 
 DELETE FROM mysql.user WHERE User='roadmin' AND Host NOT IN (<%= quoted_hosts_string %>);
