@@ -17,7 +17,7 @@
 ### Create PaaS-TA Mysql Release   
   - Download the latest PaaS-TA Mysql Release    
     ```   
-    $ git clone https://github.com/PaaS-TA/PAAS-TA-MYSQL-RELEASE.git -b CCE   
+    $ git clone https://github.com/PaaS-TA/PAAS-TA-MYSQL-RELEASE.git
     $ cd PAAS-TA-MYSQL-RELEASE   
     ```   
   - Download & Copy "source files" into the src directory   
