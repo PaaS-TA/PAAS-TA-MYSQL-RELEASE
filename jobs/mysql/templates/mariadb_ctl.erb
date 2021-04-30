@@ -27,9 +27,9 @@ RUN_DIR=/var/vcap/sys/run/$PROC_NAME
 PIDFILE=$RUN_DIR/$PROC_NAME.pid
 
 source /var/vcap/packages/cf-mysql-common/pid_utils.sh
-source /var/vcap/packages/cf-mysql-common/logging.sh
+#source /var/vcap/packages/cf-mysql-common/logging.sh
 
-output_to_logfiles ${LOG_DIR}
+#output_to_logfiles ${LOG_DIR}
 
 # logrotate audit logs
 ln -sf /var/vcap/jobs/mysql/config/mysql_audit_logs.logrotate /etc/logrotate.d/mysql_audit_logs
@@ -92,7 +92,8 @@ case $1 in
       PATH=$PATH \
       $MARIADB_CTRL_PACKAGE/bin/mariadb_ctrl \
         -configPath=$CONFIG_FILE \
-        >> $LOG_FILE 2>&1" &
+        >>$LOG_DIR/mariadb_ctrl.stdout.log \
+        2>>$LOG_DIR/mariadb_ctrl.stderr.log" &
 
     echo $! > $LAUNCHER_PID_FILE
 

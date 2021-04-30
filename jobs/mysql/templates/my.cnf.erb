@@ -123,6 +123,11 @@ long_query_time                 = <%= p('cf_mysql.mysql.long_query_time') %>
 log_queries_not_using_indexes   = ON
 <% end %>
 
+# CCE
+general_log = 1
+general_log_file = /var/vcap/sys/log/mysql/mysql_general.log
+
+
 # User statistics
 <% if p('cf_mysql.mysql.userstat') %>
 userstat                        = 1

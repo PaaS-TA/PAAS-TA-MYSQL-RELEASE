@@ -28,3 +28,7 @@ properties:
   log_level:
     description: 'log level'
     default: 'INFO'
+  cce_enable:
+    description: cce_mysql_patch.
+    default: false
+

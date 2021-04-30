@@ -5,3 +5,4 @@ jdbc.pwd = <%= link('mysql').p('cf_mysql.mysql.admin_password')%>
 jdbc.url = jdbc:mysql://<%= link('proxy').instances[0].address%>:<%= link('proxy').p('cf_mysql.proxy.port')%>
 jdbc.host = <%= link('proxy').instances[0].address%>
 jdbc.port = <%= link('proxy').p('cf_mysql.proxy.port')%>
+cce_enable = <%= p('cce_enable')%>

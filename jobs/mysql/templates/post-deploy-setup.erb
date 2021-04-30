@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+<% if p('cf_mysql_enabled') == true %>
+
+  /var/vcap/packages/mariadb/bin/mysql -uroot -P<%= p('cf_mysql.mysql.port') %> -h<%= link('mysql').instances[0].address %> -p'<%= p('cf_mysql.mysql.admin_password') %>' < /var/vcap/jobs/mysql/config/mariadb_ed25519_enable.sql
+  
+<% end %>
