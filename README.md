@@ -95,7 +95,7 @@
   - Download & Copy "source files" into the src directory   
     ```   
     ## download source files   
-    $ wget -O src.zip https://nextcloud.paas-ta.org/index.php/s/5t46S28LmgZkGb6/download
+    $ wget -O src.zip https://nextcloud.paas-ta.org/index.php/s/b4Z7prnRj3aeHoW/download
 
     ## unzip download source files   
     $ unzip src.zip   
@@ -108,7 +108,7 @@
       │   ├── logging.sh
       │   └── pid_utils.sh
       ├── check
-      │   └── check-0.9.13.tar.gz
+      │   └── check_0.10.0.orig.tar.gz
       ├── cipher_finder
       │   └── cipher_finder.jar
       ├── cli
@@ -119,7 +119,7 @@
       │   ├── lib
       │   └── spec
       ├── galera
-      │   └── galera-25.3.23.tar.gz
+      │   └── galera-25.3.34.tar.gz
       ├── generate-auto-tune-mysql
       │   ├── auto_tune_generator.go
       │   ├── auto_tune_generator_test.go
@@ -144,7 +144,7 @@
       │   ├── gra_log_purger_test.go
       │   └── vendor
       ├── mariadb
-      │   └── mariadb-10.1.48.tar.gz
+      │   └── mariadb-10.2.41.tar.gz
       ├── mariadb-patch
       │   └── add_sst_interrupt.patch
       ├── mysqlclient
@@ -174,20 +174,20 @@
       │   ├── rubygems-2.7.6.tgz
       │   └── yaml-0.1.7.tar.gz
       ├── scons
-      │   └── scons-2.3.1.tar.gz
+      │   └── scons-3.0.5.tar.gz
       └── xtrabackup
-          ├── autoconf-2.65.tar.gz
-          ├── automake-1.14.1.tar.gz
+          ├── autoconf-2.69.tar.gz
+          ├── automake-1.15.1.tar.gz
           ├── libaio_0.3.110.orig.tar.gz
-          ├── libev-4.22.tar.gz
-          ├── libtool-2.4.2.tar.gz
-          ├── percona-xtrabackup-2.4.8.tar.gz
-          └── socat-1.7.3.2.tar.gz
+          ├── libev-4.33.tar.gz
+          ├── libtool-2.4.6.tar.gz
+          ├── percona-xtrabackup-2.4.24.tar.gz
+          └── socat-1.7.4.1.tar.gz
       
     ```   
   - Create PaaS-TA Mysql Release   
     ```   
-    ## <VERSION> :: release version (e.g. 2.1.0)   
+    ## <VERSION> :: release version (e.g. 2.1.1)   
     ## <RELEASE_TARBALL_PATH> :: release file path (e.g. /home/ubuntu/workspace/paasta-mysql-<VERSION>.tgz)   
     $ bosh -e <bosh_name> create-release --name=paasta-mysql --version=<VERSION> --tarball=<RELEASE_TARBALL_PATH> --force   
     ```   

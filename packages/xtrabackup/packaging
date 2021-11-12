@@ -4,7 +4,7 @@ set -x
 
 NPROC="$(nproc)"
 
-XTRABACKUP_VERSION=2.4.8
+XTRABACKUP_VERSION=2.4.24
 PREFIX=${BOSH_INSTALL_TARGET}
 
 export PATH=$PATH:${BOSH_INSTALL_TARGET}/bin:/var/vcap/packages/mariadb/bin
@@ -12,10 +12,10 @@ export PATH=$PATH:${BOSH_INSTALL_TARGET}/bin:/var/vcap/packages/mariadb/bin
 # Install Xtrabackup runtime dependencies
 
 # socat
-tar xzf xtrabackup/socat-1.7.3.2.tar.gz
+tar xzf xtrabackup/socat-1.7.4.1.tar.gz
 (
   set -e
-  cd socat-1.7.3.2
+  cd socat-1.7.4.1
   ./configure --prefix=$PREFIX
   make -j "${NPROC}"
   make -j "${NPROC}" install prefix=$PREFIX
@@ -24,30 +24,30 @@ tar xzf xtrabackup/socat-1.7.3.2.tar.gz
 # Install Xtrabackup compilation dependencies
 # autoconf
 
-tar xzf xtrabackup/autoconf-2.65.tar.gz
+tar xzf xtrabackup/autoconf-2.69.tar.gz
 (
   set -e
-  cd autoconf-2.65
+  cd autoconf-2.69
   autoconf_dir=$PREFIX/share/autoconf ./configure --prefix=$PREFIX
   make -j "${NPROC}"
   make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # automake
-tar xzf xtrabackup/automake-1.14.1.tar.gz
+tar xzf xtrabackup/automake-1.15.1.tar.gz
 (
   set -e
-  cd automake-1.14.1
+  cd automake-1.15.1
   ./configure --prefix=$PREFIX
   make -j "${NPROC}"
   make -j "${NPROC}" install prefix=$PREFIX
 )
 
 # libtool
-tar xzf xtrabackup/libtool-2.4.2.tar.gz
+tar xzf xtrabackup/libtool-2.4.6.tar.gz
 (
   set -e
-  cd libtool-2.4.2
+  cd libtool-2.4.6
   ./configure --prefix=$PREFIX
   make -j "${NPROC}"
   make -j "${NPROC}" install prefix=$PREFIX
@@ -66,11 +66,11 @@ tar xzf xtrabackup/libaio_0.3.110.orig.tar.gz
 cp -R /var/vcap/packages/boost/lib/* /usr/lib/
 cp -R /var/vcap/packages/boost/include/* /usr/include/
 
-tar xzf xtrabackup/libev-4.22.tar.gz
+tar xzf xtrabackup/libev-4.33.tar.gz
 (
   set -e
 
-  cd libev-4.22
+  cd libev-4.33
 
   ./configure --prefix=/usr --disable-static &&
   make -j "${NPROC}"
