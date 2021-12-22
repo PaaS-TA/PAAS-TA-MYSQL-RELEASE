@@ -3,7 +3,7 @@ set -e
 
 NPROC="$(nproc)"
 
-MARIADB_VERSION=10.1.48
+MARIADB_VERSION=10.2.41
 MY_DIR=$(pwd)
 
 tar xzf mariadb/mariadb-${MARIADB_VERSION}.tar.gz
@@ -12,7 +12,7 @@ tar xzf mariadb/mariadb-${MARIADB_VERSION}.tar.gz
   cd mariadb-${MARIADB_VERSION}
 
   #use mariadb 10.1.38
-  patch -p1 < ${MY_DIR}/mariadb-patch/add_sst_interrupt.patch
+  #patch -p1 < ${MY_DIR}/mariadb-patch/add_sst_interrupt.patch
 
   mkdir bld
   cd bld
