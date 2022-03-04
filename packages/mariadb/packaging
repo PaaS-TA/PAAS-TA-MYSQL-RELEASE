@@ -3,54 +3,56 @@ set -e
 
 NPROC="$(nproc)"
 
-MARIADB_VERSION=10.2.41
+MARIADB_VERSION=10.2.*
 MY_DIR=$(pwd)
 
 tar xzf mariadb/mariadb-${MARIADB_VERSION}.tar.gz
 (
   set -e
-  cd mariadb-${MARIADB_VERSION}
-
+#  cd mariadb-${MARIADB_VERSION}
+  pwd
+  ls -l
   #use mariadb 10.1.38
   #patch -p1 < ${MY_DIR}/mariadb-patch/add_sst_interrupt.patch
 
-  mkdir bld
-  cd bld
+#  mkdir bld
+#  cd bld
 
-  cmake .. \
-      -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
-      -DWITH_SSL=system \
-      -DWITH_WSREP=ON \
-      -DWITH_INNODB_DISALLOW_WRITES=1 \
-      -DWITH_PCRE=bundled
+#  cmake .. \
+#      -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
+#      -DWITH_SSL=system \
+#      -DWITH_WSREP=ON \
+#      -DWITH_INNODB_DISALLOW_WRITES=1 \
+#      -DWITH_PCRE=bundled
 
   #
   # Go Agent cannot handle more than 10MB output, so trim it
   #
-  set +e
-  make -j "${NPROC}" > build.out 2> build.err
-  BUILD_EXIT_CODE=$?
-  set -e
+#  set +e
+#  make -j "${NPROC}" > build.out 2> build.err
+#  BUILD_EXIT_CODE=$?
+#  set -e
 
-  if [ $BUILD_EXIT_CODE -ne 0 ]; then
-      tail -n 1000 build.err
-      exit $BUILD_EXIT_CODE
-  fi
-  tail -n 1000 build.out
+#  if [ $BUILD_EXIT_CODE -ne 0 ]; then
+#      tail -n 1000 build.err
+#      exit $BUILD_EXIT_CODE
+#  fi
+#  tail -n 1000 build.out
 
-  make -j "${NPROC}" install > build.out 2> build.err
-  BUILD_EXIT_CODE=$?
-  set -e
+#  make -j "${NPROC}" install > build.out 2> build.err
+#  BUILD_EXIT_CODE=$?
+#  set -e
 
-  if [ $BUILD_EXIT_CODE -ne 0 ]; then
-      tail -n 1000 build.err
-      exit $BUILD_EXIT_CODE
-  fi
-  tail -n 1000 build.out
+#  if [ $BUILD_EXIT_CODE -ne 0 ]; then
+#      tail -n 1000 build.err
+#      exit $BUILD_EXIT_CODE
+#  fi
+#  tail -n 1000 build.out
 
-  rm -rf ${BOSH_INSTALL_TARGET}/mysql-test/
+#  rm -rf ${BOSH_INSTALL_TARGET}/mysql-test/
 
   echo -n "${MARIADB_VERSION}-MariaDB" > ${BOSH_INSTALL_TARGET}/VERSION
+  mv mariadb-${MARIADB_VERSION}/* ${BOSH_INSTALL_TARGET}/
   cp /var/vcap/packages/galera/garbd ${BOSH_INSTALL_TARGET}/bin/
   cp /var/vcap/packages/galera/libgalera_smm.so ${BOSH_INSTALL_TARGET}/lib/plugin/
 )
