@@ -63,7 +63,7 @@ wsrep_cluster_address           = gcomm://<%= cluster_ips.join(",") %>
 wsrep_node_address              = <%= node_host %>:<%= p('cf_mysql.mysql.galera_port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_cluster_name              = <%= p('cf_mysql.mysql.cluster_name') %>
-wsrep_sst_method                = xtrabackup-v2
+wsrep_sst_method                = mariabackup
 wsrep_sst_auth                  = <%= p('cf_mysql.mysql.admin_username')%>:<%= p('cf_mysql.mysql.admin_password') %>
 wsrep_max_ws_rows               = <%= p('cf_mysql.mysql.wsrep_max_ws_rows') %>
 wsrep_max_ws_size               = <%= p('cf_mysql.mysql.wsrep_max_ws_size') %>
@@ -170,6 +170,10 @@ innodb_autoinc_lock_mode        = 2
 innodb_doublewrite              = 1
 query_cache_size                = 0
 query_cache_type                = OFF
+innodb_compression_default      = OFF
+innodb_encrypt_log              = OFF
+innodb_page_size                = 16384
+innodb_undo_logs                = 1
 
 # These are required to make the quota enforcer work
 innodb_stats_on_metadata        = ON
