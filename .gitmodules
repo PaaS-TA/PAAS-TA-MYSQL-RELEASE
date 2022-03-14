@@ -1,0 +1,3 @@
+[submodule "src/op-mysql-java-broker"]
+	path = src/op-mysql-java-broker
+	url = https://github.com/PaaS-TA/OPENPAAS-SERVICE-JAVA-BROKER-MYSQL
