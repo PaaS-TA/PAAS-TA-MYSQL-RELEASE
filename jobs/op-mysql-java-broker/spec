@@ -31,4 +31,15 @@ properties:
   cce_enable:
     description: cce_mysql_patch.
     default: false
-
+  services.plans.a.name:
+    description: "mysql service plan A name"
+    default: "Mysql-Plan1-10con"
+  services.plans.a.connection:
+    description: "mysql service plan A user connections"
+    default: 10
+  services.plans.b.name:
+    description: "mysql service plan B name"
+    default: "Mysql-Plan2-100con"
+  services.plans.b.connection:
+    description: "mysql service plan B user connections"
+    default: 100
