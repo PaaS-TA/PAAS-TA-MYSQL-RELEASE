@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+
+SERVICE_PLAN_CONFIG="${JOB_DIR}/config/serviceplan.properties"
+LOG_PATH="/var/vcap/sys/log/monit/${JOB_NAME}.err.log"
+
+PLAN_NAME_LIST=()
+while IFS= read -r line; do
+    if [[ ${line} =~ "name" ]]; then
+        PLAN_NAME=$(echo "${line}" | cut -d "=" -f2 | tr -d ' ')
+        PLAN_NAME_LIST+=("${PLAN_NAME}")
+    fi
+done < ${SERVICE_PLAN_CONFIG}
+
+if [[ ${PLAN_NAME_LIST[0]} == ${PLAN_NAME_LIST[1]} ]]; then
+    echo "Error: Service plan name is duplicated" >> ${LOG_PATH}
+    exit 1
+fi

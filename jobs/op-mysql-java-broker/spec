@@ -3,7 +3,9 @@ name: op-mysql-java-broker
 
 templates: 
   bin/op-mysql-java-broker_ctl.erb: bin/op-mysql-java-broker_ctl
+  bin/pre_start.erb: bin/pre_start
   config/datasource.properties.erb: config/datasource.properties
+  config/serviceplan.properties.erb: config/serviceplan.properties
   config/logback.xml.erb: config/logback.xml
   bin/monit_debugger: bin/monit_debugger
   data/properties.sh.erb: data/properties.sh
