@@ -15,6 +15,8 @@ case $1 in
 
     pid_guard $PIDFILE $JOB_NAME
 
+    source ${JOB_DIR}/bin/pre_start ${JOB_NAME}
+
     $JAVA_DIR/bin/java -cp "$PACKAGE_DIR/openpaas-service-java-broker-mysql.jar:/var/vcap/jobs/op-mysql-java-broker/config" org.springframework.boot.loader.JarLauncher\
         --spring.config.name=$JOB_NAME \
         >>$LOG_DIR/$JOB_NAME.stdout.log \
@@ -34,3 +36,4 @@ case $1 in
     ;;
 
 esac
+exit 0

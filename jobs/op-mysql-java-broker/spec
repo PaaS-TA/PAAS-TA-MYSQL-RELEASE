@@ -3,7 +3,9 @@ name: op-mysql-java-broker
 
 templates: 
   bin/op-mysql-java-broker_ctl.erb: bin/op-mysql-java-broker_ctl
+  bin/pre_start.erb: bin/pre_start
   config/datasource.properties.erb: config/datasource.properties
+  config/serviceplan.properties.erb: config/serviceplan.properties
   config/logback.xml.erb: config/logback.xml
   bin/monit_debugger: bin/monit_debugger
   data/properties.sh.erb: data/properties.sh
@@ -31,4 +33,15 @@ properties:
   cce_enable:
     description: cce_mysql_patch.
     default: false
-
+  services.plans.a.name:
+    description: "mysql service plan A name"
+    default: "Mysql-Plan1-10con"
+  services.plans.a.connection:
+    description: "mysql service plan A user connections"
+    default: 10
+  services.plans.b.name:
+    description: "mysql service plan B name"
+    default: "Mysql-Plan2-100con"
+  services.plans.b.connection:
+    description: "mysql service plan B user connections"
+    default: 100
