@@ -1,8 +1,0 @@
-tags
-*.xml
-vendor/bin
-vendor/pkg
-integration_config.json
-integration-config.json
-*.test
-**/out/
