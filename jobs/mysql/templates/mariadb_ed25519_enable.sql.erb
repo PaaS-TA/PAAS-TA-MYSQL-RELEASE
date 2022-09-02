@@ -1,7 +1,0 @@
-INSTALL SONAME 'auth_ed25519';
-CREATE FUNCTION IF NOT EXISTS ed25519_password RETURNS STRING SONAME "auth_ed25519.so";
---if use ed25519 then
---CREATE USER 'account'@'%' IDENTIFIED BY 'paasword';
---UPDATE mysql.user SET password = '', plugin = 'ed25519', authentication_string = ed25519_password('paasword') where user = 'account' and host = '%';
---FLUSH PRIVILEGES;
-DROP USER IF EXISTS 'smoke-tests'@'%'; 

@@ -1,9 +1,0 @@
----
-name: xtrabackup
-
-dependencies:
-  - mariadb
-  - boost
-
-files:
-  - xtrabackup/**/*

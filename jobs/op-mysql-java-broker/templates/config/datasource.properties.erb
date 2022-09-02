@@ -1,8 +1,14 @@
 # mysql Database Settings
+<% if p('database_type') == 'mysql' %>
+jdbc.driver = com.mysql.cj.jdbc.Driver
+<% end %>
+<% if p('database_type') == 'mariadb' %>
 jdbc.driver = org.mariadb.jdbc.Driver
+<% end %>
 jdbc.username = root
-jdbc.pwd = <%= link('mysql').p('cf_mysql.mysql.admin_password')%>
-jdbc.url = jdbc:mysql://<%= link('proxy').instances[0].address%>:<%= link('proxy').p('cf_mysql.proxy.port')%>
+jdbc.pwd = <%= p('mysql_admin_password') %>
+jdbc.url = jdbc:mysql://<%= link('proxy').instances[0].address%>:<%= link('proxy').p('port')%>
 jdbc.host = <%= link('proxy').instances[0].address%>
-jdbc.port = <%= link('proxy').p('cf_mysql.proxy.port')%>
+jdbc.port = <%= link('proxy').p('port')%>
 cce_enable = <%= p('cce_enable')%>
+database_type = <%= p('database_type')%>

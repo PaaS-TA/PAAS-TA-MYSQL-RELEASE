@@ -4,4 +4,4 @@ name: op-mysql-java-broker
 dependencies: []
 
 files: 
-- op-mysql-java-broker/**/*
+- op-mysql-java-broker/openpaas-service-java-broker-mysql.jar

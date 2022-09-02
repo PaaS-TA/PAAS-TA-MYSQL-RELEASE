@@ -45,3 +45,7 @@ properties:
   services.plans.b.connection:
     description: "mysql service plan B user connections"
     default: 100
+  mysql_admin_password:
+    description: "mysql admin password"
+  database_type:
+    description: "mysql(pxc) or mariadb(기존 mysql-release)"
