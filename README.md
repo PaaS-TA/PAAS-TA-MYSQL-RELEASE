@@ -95,94 +95,18 @@
   - Download & Copy "source files" into the src directory   
     ```   
     ## download source files   
-    $ wget -O src.zip https://nextcloud.paas-ta.org/index.php/s/6DqdDkmbk4qqimF/download
+    $ wget -O src.zip https://nextcloud.paas-ta.org/index.php/s/p3i648xGRDJNSC9/download
 
     ## unzip download source files   
     $ unzip src.zip   
 
     ## final src directory (2-depth)  
     src
-      ├── boost
-      │   └── boost_1_59_0.tar.gz
-      ├── cf-mysql-common
-      │   ├── logging.sh
-      │   └── pid_utils.sh
-      ├── check
-      │   └── check_0.10.0.orig.tar.gz
-      ├── cipher_finder
-      │   └── cipher_finder.jar
-      ├── cli
-      │   └── cf-cli_6.36.1_linux_x86-64.tgz
-      ├── cluster_schema_verifier
-      │   ├── Gemfile
-      │   ├── Gemfile.lock
-      │   ├── lib
-      │   └── spec
-      ├── galera
-      │   └── galera-25.3.34.tar.gz
-      ├── generate-auto-tune-mysql
-      │   ├── auto_tune_generator.go
-      │   ├── auto_tune_generator_test.go
-      │   ├── generate_auto_tune_mysql_suite_test.go
-      │   ├── main.go
-      │   └── vendor
-      ├── github.com
-      │   ├── cloudfoundry
-      │   ├── cloudfoundry-incubator
-      │   └── onsi
-      ├── golang-1.11-linux
-      │   ├── compile.env.generic
-      │   ├── compile.env.linux
-      │   ├── go1.11.1.linux-amd64.tar.gz
-      │   └── runtime.env.linux
-      ├── gra-log-purger
-      │   ├── Gopkg.lock
-      │   ├── Gopkg.toml
-      │   ├── README.md
-      │   ├── gra_log_purger.go
-      │   ├── gra_log_purger_suite_test.go
-      │   ├── gra_log_purger_test.go
-      │   └── vendor
-      ├── mariadb
-      │   └── mariadb-10.2.44-linux-x86_64.tar.gz
-      ├── mariadb-patch
-      │   └── add_sst_interrupt.patch
-      ├── mysqlclient
-      │   └── mariadb-connector-c-3.1.12-src.tar.gz
       ├── op-mysql-java-broker
       │   └── openpaas-service-java-broker-mysql.jar
-      ├── openjdk
-      │   └── openjdk-1.8.0_45.tar.gz
-      ├── pcre-8.35.tar.gz
-      ├── python
-      │   └── Python-2.7.13.tgz
-      ├── quota-enforcer
-      │   ├── LICENSE
-      │   ├── README.md
-      │   ├── bin
-      │   ├── clock
-      │   ├── config
-      │   ├── config-default.yaml
-      │   ├── config-example.yaml
-      │   ├── database
-      │   ├── enforcer
-      │   ├── integration
-      │   ├── main.go
-      │   └── vendor
-      ├── ruby
-      │   ├── ruby-2.3.8.tar.gz
-      │   ├── rubygems-2.7.6.tgz
-      │   └── yaml-0.1.7.tar.gz
-      ├── scons
-      │   └── scons-3.0.5.tar.gz
-      └── xtrabackup
-          ├── autoconf-2.69.tar.gz
-          ├── automake-1.15.1.tar.gz
-          ├── libaio_0.3.110.orig.tar.gz
-          ├── libev-4.33.tar.gz
-          ├── libtool-2.4.6.tar.gz
-          ├── percona-xtrabackup-2.4.24.tar.gz
-          └── socat-1.7.4.1.tar.gz
+      └── openjdk
+          └── openjdk-1.8.0_45.tar.gz
+
       
     ```   
   - Create PaaS-TA Mysql Release   
